@@ -11,7 +11,7 @@
 
 ## 명령어
 - `npm run dev`: 클라이언트 실행 명령어
-- `npm run start`: 서버 실행 명령어
+- `npm run start:dev`: 서버 실행 명령어
 
 ## 기타 지침
 - client: @../client/CLAUDE.md
