@@ -4,7 +4,8 @@ interface Props {
   quote: StockQuote
 }
 
-function formatNumber(n: number) {
+function formatNumber(n: number | undefined) {
+  if (n == null) return '-'
   if (n >= 1_000_000_000_000) return `${(n / 1_000_000_000_000).toFixed(2)}T`
   if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(2)}B`
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`

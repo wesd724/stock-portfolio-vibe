@@ -1,0 +1,19 @@
+import { create } from 'zustand'
+import { StockQuote } from '../types/stock'
+
+interface StockStore {
+  selectedQuote: StockQuote | null
+  setSelectedQuote: (quote: StockQuote | null) => void
+  initQuote: () => void
+}
+
+/*
+{함수이름}: (매개변수) => 반환타입,
+{함수이름}(매개변수): 반환타입
+차이없음*/ 
+
+export const useStock = create<StockStore>((set) => ({
+  selectedQuote: null,
+  setSelectedQuote: (quote) => set({ selectedQuote: quote }),
+  initQuote: () => set({ selectedQuote: null })
+}))
