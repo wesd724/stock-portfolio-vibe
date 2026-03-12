@@ -8,8 +8,10 @@ interface Props {
 function formatDate(dateStr: string) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     month: 'numeric', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -45,35 +47,33 @@ export default function StockNews({ symbol }: Props) {
   const [loading, setLoading] = useState(true)
   const [translated, setTranslated] = useState(false)
   const [translating, setTranslating] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<NewsItem | null>(null)
 
-  useEffect(() => {
-    setLoading(true)
-    setTranslated(false)
-    fetch(`/api/stocks/news/${symbol}`)
+  function loadNews(translate: boolean, isRefresh = false) {
+    const url = translate ? `/api/stocks/news/${symbol}?translate=true` : `/api/stocks/news/${symbol}`
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
+    fetch(url)
       .then((res) => res.json())
       .then((data: NewsItem[]) => setNews(data))
-      .catch(() => setNews([]))
-      .finally(() => setLoading(false))
+      .catch(() => {})
+      .finally(() => { setRefreshing(false); setLoading(false) })
+  }
+
+  useEffect(() => {
+    setTranslated(false)
+    loadNews(false)
   }, [symbol])
 
   async function toggleTranslate() {
-    if (translated) {
-      // 원문으로 되돌리기
-      setTranslating(true)
-      fetch(`/api/stocks/news/${symbol}`)
-        .then((res) => res.json())
-        .then((data: NewsItem[]) => { setNews(data); setTranslated(false) })
-        .catch(() => {})
-        .finally(() => setTranslating(false))
-    } else {
-      setTranslating(true)
-      fetch(`/api/stocks/news/${symbol}?translate=true`)
-        .then((res) => res.json())
-        .then((data: NewsItem[]) => { setNews(data); setTranslated(true) })
-        .catch(() => {})
-        .finally(() => setTranslating(false))
-    }
+    setTranslating(true)
+    const next = !translated
+    await fetch(next ? `/api/stocks/news/${symbol}?translate=true` : `/api/stocks/news/${symbol}`)
+      .then((res) => res.json())
+      .then((data: NewsItem[]) => { setNews(data); setTranslated(next) })
+      .catch(() => {})
+    setTranslating(false)
   }
 
   const yahooNews = news.filter((n) => n.source === 'yahoo')
@@ -91,21 +91,33 @@ export default function StockNews({ symbol }: Props) {
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9' }}>관련 뉴스</h3>
-          <button
-            onClick={toggleTranslate}
-            disabled={loading || translating}
-            style={{
-              padding: '4px 12px',
-              borderRadius: '6px',
-              border: '1px solid #334155',
-              background: translated ? '#3b82f6' : 'transparent',
-              color: translated ? '#fff' : '#94a3b8',
-              cursor: 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
-          </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => loadNews(translated, true)}
+              disabled={loading || translating || refreshing}
+              title="새로고침"
+              style={{
+                padding: '4px 10px', borderRadius: '6px',
+                border: '1px solid #334155', background: 'transparent',
+                color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+              }}
+            >
+              {refreshing ? '⟳' : '↻'}
+            </button>
+            <button
+              onClick={toggleTranslate}
+              disabled={loading || translating || refreshing}
+              style={{
+                padding: '4px 12px', borderRadius: '6px',
+                border: '1px solid #334155',
+                background: translated ? '#3b82f6' : 'transparent',
+                color: translated ? '#fff' : '#94a3b8',
+                cursor: 'pointer', fontSize: '12px',
+              }}
+            >
+              {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
+            </button>
+          </div>
         </div>
 
         {loading ? (
@@ -114,7 +126,7 @@ export default function StockNews({ symbol }: Props) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div>
               <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
-                Yahoo Finance
+                Yahoo Finance 제공
               </div>
               <NewsList items={yahooNews} onSelect={setSelected} />
             </div>

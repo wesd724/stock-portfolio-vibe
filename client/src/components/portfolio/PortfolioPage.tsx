@@ -1,5 +1,7 @@
 import { useEffect } from 'react'
 import { usePortfolio } from '../../context/PortfolioContext'
+import { useStock } from '../../context/StockContext'
+import { useNavigation } from '../../context/NavigationContext'
 import { computeSummary } from '../../utils/portfolioCalc'
 
 function fmt(n: number) {
@@ -8,10 +10,21 @@ function fmt(n: number) {
 
 export default function PortfolioPage() {
   const { holdings, refreshCurrentPrices } = usePortfolio()
+  const { setSelectedQuote } = useStock()
+  const { setPage } = useNavigation()
   const summary = computeSummary(holdings)
   const isPositive = summary.gainLoss >= 0
 
   useEffect(() => { refreshCurrentPrices() }, [])
+
+  async function handleRowClick(symbol: string) {
+    const res = await fetch(`/api/stocks/quote/${symbol}`)
+    if (res.ok) {
+      const data = await res.json()
+      setSelectedQuote(data)
+      setPage('home')
+    }
+  }
 
   if (holdings.length === 0) {
     return <p style={{ color: '#475569', fontSize: '15px' }}>보유 종목이 없습니다. 종목을 검색해 매수해보세요.</p>
@@ -48,7 +61,13 @@ export default function PortfolioPage() {
             {holdings.map((h) => {
               const pos = h.gainLoss >= 0
               return (
-                <tr key={h.symbol} style={{ borderTop: '1px solid #334155' }}>
+                <tr
+                  key={h.symbol}
+                  onClick={() => handleRowClick(h.symbol)}
+                  style={{ borderTop: '1px solid #334155', cursor: 'pointer' }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = '#0f172a')}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
                   <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                     <div style={{ fontWeight: 700 }}>{h.symbol}</div>
                     <div style={{ color: '#64748b', fontSize: '11px' }}>{h.name}</div>

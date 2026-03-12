@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { StockQuote, StockSearchResult } from '../types/stock'
 import { useStock } from '../context/StockContext'
+import { useNavigation } from '../context/NavigationContext'
 
 export default function StockSearch() {
   const [query, setQuery] = useState('')
@@ -9,6 +10,7 @@ export default function StockSearch() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const justSelectedRef = useRef(false)
   const { setSelectedQuote } = useStock()
+  const { setPage } = useNavigation()
 
   useEffect(() => {
     if (justSelectedRef.current) {
@@ -46,6 +48,7 @@ export default function StockSearch() {
       if (!res.ok) return
       const data: StockQuote = await res.json()
       setSelectedQuote(data)
+      setPage('home')
     } catch {
       // 에러 무시
     }

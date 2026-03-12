@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { StockQuote } from '../types/stock'
+import { useStock } from '../context/StockContext'
 import BuyModal from './portfolio/BuyModal'
 
 interface Props {
@@ -34,8 +35,16 @@ function marketStateLabel(state: string) {
 
 export default function StockCard({ quote }: Props) {
   const [showBuy, setShowBuy] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
+  const { refreshQuote } = useStock()
   const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState)
+
+  async function handleRefresh() {
+    setRefreshing(true)
+    await refreshQuote()
+    setRefreshing(false)
+  }
 
   return (
     <>
@@ -72,6 +81,14 @@ export default function StockCard({ quote }: Props) {
               style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
             >
               매수
+            </button>
+            <button
+              onClick={handleRefresh}
+              disabled={refreshing}
+              title="최신 정보로 업데이트"
+              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}
+            >
+              ↻
             </button>
           </div>
           <div style={{ color: isPositive ? '#22c55e' : '#ef4444', fontSize: '15px', marginTop: '2px' }}>

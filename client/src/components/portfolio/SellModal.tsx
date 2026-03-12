@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { Transaction } from '../../types/portfolio'
 
@@ -63,7 +64,7 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
   const sellAmount = priceInfo && shares ? priceInfo.price * sharesNum : null
   const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares
 
-  return (
+  return createPortal(
     <div
       onClick={onClose}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
@@ -145,6 +146,7 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

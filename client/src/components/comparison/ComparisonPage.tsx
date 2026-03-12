@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useStock } from '../../context/StockContext'
+import { useNavigation } from '../../context/NavigationContext'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend,
@@ -91,6 +93,8 @@ const inputStyle: React.CSSProperties = {
 }
 
 export default function ComparisonPage() {
+  const { setSelectedQuote } = useStock()
+  const { setPage } = useNavigation()
   const [symbols, setSymbols] = useState<SymbolEntry[]>([])
   const [interval, setIntervalVal] = useState<CompareInterval>('1d')
   const [dateRange, setDateRange] = useState(getDefaultRange('1d'))
@@ -157,6 +161,15 @@ export default function ComparisonPage() {
     setQuery('')
     setShowDropdown(false)
     setSearchResults([])
+  }
+
+  async function navigateToSymbol(symbol: string) {
+    const res = await fetch(`/api/stocks/quote/${symbol}`)
+    if (res.ok) {
+      const data = await res.json()
+      setSelectedQuote(data)
+      setPage('home')
+    }
   }
 
   function removeSymbol(symbol: string) {
@@ -229,7 +242,11 @@ export default function ComparisonPage() {
                 width: '8px', height: '8px', borderRadius: '50%',
                 background: COLORS[i % COLORS.length], flexShrink: 0,
               }} />
-              <span style={{ color: '#f1f5f9', fontWeight: 600 }}>{s.symbol}</span>
+              <span
+                onClick={() => navigateToSymbol(s.symbol)}
+                style={{ color: '#f1f5f9', fontWeight: 600, cursor: 'pointer' }}
+                title="종목 정보 보기"
+              >{s.symbol}</span>
               <span style={{ color: '#64748b', fontSize: '11px' }}>{s.name}</span>
               <button
                 onClick={() => removeSymbol(s.symbol)}

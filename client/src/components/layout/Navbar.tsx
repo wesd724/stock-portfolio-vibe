@@ -6,6 +6,7 @@ const TABS: { label: string; page: Page }[] = [
   { label: '홈', page: 'home' },
   { label: '포트폴리오', page: 'portfolio' },
   { label: '거래내역', page: 'transactions' },
+  { label: '종목 비교', page: 'compare' },
 ]
 
 export default function Navbar() {

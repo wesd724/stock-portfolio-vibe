@@ -19,8 +19,10 @@ const SOURCE_COLORS: Record<string, string> = {
 function formatDate(dateStr: string) {
   if (!dateStr) return ''
   return new Date(dateStr).toLocaleString('ko-KR', {
+    timeZone: 'Asia/Seoul',
     month: 'numeric', day: 'numeric',
     hour: '2-digit', minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -30,22 +32,23 @@ export default function GlobalNews() {
   const [loading, setLoading] = useState(true)
   const [translated, setTranslated] = useState(false)
   const [translating, setTranslating] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<NewsItem | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
 
-  function fetchNews(translate: boolean) {
+  function fetchNews(translate: boolean, isRefresh = false) {
     const url = translate ? '/api/news/global?translate=true' : '/api/news/global'
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
     return fetch(url)
       .then((r) => r.json())
-      .then((data: NewsItem[]) => {
-        setAllNews(data)
-        setVisibleCount(PAGE_SIZE)
-      })
+      .then((data: NewsItem[]) => { setAllNews(data); setVisibleCount(PAGE_SIZE) })
+      .catch(() => {})
+      .finally(() => { setRefreshing(false); setLoading(false) })
   }
 
   useEffect(() => {
-    setLoading(true)
-    fetchNews(false).finally(() => setLoading(false))
+    fetchNews(false)
   }, [])
 
   // 무한 스크롤
@@ -68,7 +71,7 @@ export default function GlobalNews() {
   async function toggleTranslate() {
     setTranslating(true)
     const next = !translated
-    await fetchNews(next).catch(() => {})
+    await fetchNews(next)
     setTranslated(next)
     setTranslating(false)
   }
@@ -95,20 +98,34 @@ export default function GlobalNews() {
               ))}
             </div>
           </div>
-          <button
-            onClick={toggleTranslate}
-            disabled={loading || translating}
-            style={{
-              padding: '4px 12px', borderRadius: '6px',
-              border: '1px solid #334155',
-              background: translated ? '#3b82f6' : 'transparent',
-              color: translated ? '#fff' : '#94a3b8',
-              cursor: loading || translating ? 'default' : 'pointer',
-              fontSize: '12px',
-            }}
-          >
-            {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
-          </button>
+          <div style={{ display: 'flex', gap: '6px' }}>
+            <button
+              onClick={() => fetchNews(translated, true)}
+              disabled={loading || translating || refreshing}
+              title="새로고침"
+              style={{
+                padding: '4px 10px', borderRadius: '6px',
+                border: '1px solid #334155', background: 'transparent',
+                color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+              }}
+            >
+              {refreshing ? '⟳' : '↻'}
+            </button>
+            <button
+              onClick={toggleTranslate}
+              disabled={loading || translating || refreshing}
+              style={{
+                padding: '4px 12px', borderRadius: '6px',
+                border: '1px solid #334155',
+                background: translated ? '#3b82f6' : 'transparent',
+                color: translated ? '#fff' : '#94a3b8',
+                cursor: loading || translating || refreshing ? 'default' : 'pointer',
+                fontSize: '12px',
+              }}
+            >
+              {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
+            </button>
+          </div>
         </div>
 
         {/* 뉴스 목록 */}
