@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { Transaction } from '../../types/portfolio'
 
@@ -61,12 +62,12 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
 
   const shares = priceInfo && amount ? parseFloat(amount) / priceInfo.price : null
 
-  return (
+  return createPortal(
     <div
-      onClick={onClose}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '440px' }}>
+      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '440px' }}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '4px' }}>매수</h2>
         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>{symbol} · {name}</p>
 
@@ -128,10 +129,11 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
             disabled={!priceInfo || !amount || parseFloat(amount) <= 0 || submitting}
             style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600, opacity: (!priceInfo || !amount || parseFloat(amount) <= 0) ? 0.4 : 1 }}
           >
-            {submitting ? '처리 중...' : '매수 확정'}
+            {submitting ? '처리 중...' : '매수'}
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

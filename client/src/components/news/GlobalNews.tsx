@@ -179,7 +179,7 @@ export default function GlobalNews() {
       {/* 클릭 오버레이 */}
       {selected && (
         <div
-          onClick={() => setSelected(null)}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}
           style={{
             position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
             zIndex: 300, display: 'flex', alignItems: 'center',
@@ -187,7 +187,6 @@ export default function GlobalNews() {
           }}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
               background: '#1e293b', border: '1px solid #334155',
               borderRadius: '12px', padding: '28px',

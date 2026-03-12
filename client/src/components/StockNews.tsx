@@ -143,7 +143,7 @@ export default function StockNews({ symbol }: Props) {
       {/* 오버레이 */}
       {selected && (
         <div
-          onClick={() => setSelected(null)}
+          onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}
           style={{
             position: 'fixed',
             inset: 0,
@@ -156,7 +156,6 @@ export default function StockNews({ symbol }: Props) {
           }}
         >
           <div
-            onClick={(e) => e.stopPropagation()}
             style={{
               background: '#1e293b',
               border: '1px solid #334155',

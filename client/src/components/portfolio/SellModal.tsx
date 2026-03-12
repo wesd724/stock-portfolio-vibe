@@ -62,14 +62,14 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
 
   const sharesNum = parseFloat(shares)
   const sellAmount = priceInfo && shares ? priceInfo.price * sharesNum : null
-  const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares
+  const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares + 1e-9
 
   return createPortal(
     <div
-      onClick={onClose}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
     >
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '440px' }}>
+      <div style={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '440px' }}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '4px' }}>매도</h2>
         <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>{symbol} · {name} · 보유 {maxShares.toFixed(4)}주</p>
 
@@ -116,14 +116,14 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
             style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: '1px solid #334155', background: '#0f172a', color: '#f1f5f9', fontSize: '14px' }}
           />
           <button
-            onClick={() => setShares(maxShares.toFixed(4))}
+            onClick={() => setShares((Math.floor(maxShares * 10000) / 10000).toFixed(4))}
             style={{ padding: '8px 14px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '13px' }}
           >
             전량
           </button>
         </div>
 
-        {sharesNum > maxShares && (
+        {sharesNum > maxShares + 1e-9 && (
           <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px' }}>보유 수량을 초과했습니다.</p>
         )}
 
@@ -142,7 +142,7 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
             disabled={!isValid || submitting}
             style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: '#ef4444', color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600, opacity: !isValid ? 0.4 : 1 }}
           >
-            {submitting ? '처리 중...' : '매도 확정'}
+            {submitting ? '처리 중...' : '매도'}
           </button>
         </div>
       </div>
