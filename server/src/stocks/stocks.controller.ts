@@ -13,9 +13,11 @@ export class StocksController {
   @Get('chart/:symbol')
   getChart(
     @Param('symbol') symbol: string,
-    @Query('interval') interval: '1m' | '5m' | '1h' | '1d' = '1d',
+    @Query('interval') interval: '1m' | '5m' | '1h' | '1d' | '1mo' = '1d',
+    @Query('from') from?: string,
+    @Query('to') to?: string,
   ) {
-    return this.stocksService.getChart(symbol.toUpperCase(), interval);
+    return this.stocksService.getChart(symbol.toUpperCase(), interval, from, to);
   }
 
   @Get('news/:symbol')

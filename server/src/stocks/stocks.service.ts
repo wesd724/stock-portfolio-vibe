@@ -5,7 +5,7 @@ import Parser from 'rss-parser';
 const yf = new YahooFinance();
 const rssParser = new Parser();
 
-type ChartInterval = '1m' | '5m' | '1h' | '1d';
+type ChartInterval = '1m' | '5m' | '1h' | '1d' | '1mo';
 
 @Injectable()
 export class StocksService {
@@ -46,18 +46,29 @@ export class StocksService {
     }
   }
 
-  async getChart(symbol: string, interval: ChartInterval) {
-    const periodMap: Record<ChartInterval, number> = {
-      '1m': 1,
-      '5m': 5,
-      '1h': 30,
-      '1d': 365,
-    };
+  async getChart(symbol: string, interval: ChartInterval, from?: string, to?: string) {
+    let period1: Date;
+    let period2: Date | undefined;
 
-    const days = periodMap[interval];
-    const period1 = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    if (from) {
+      period1 = new Date(from);
+      period2 = to ? new Date(to) : undefined;
+    } else {
+      const periodMap: Record<ChartInterval, number> = {
+        '1m': 1,
+        '5m': 5,
+        '1h': 30,
+        '1d': 365,
+        '1mo': 1825,
+      };
+      period1 = new Date(Date.now() - periodMap[interval] * 24 * 60 * 60 * 1000);
+    }
 
-    const result = await yf.chart(symbol, { period1, interval });
+    const result = await yf.chart(symbol, {
+      period1,
+      ...(period2 && { period2 }),
+      interval,
+    });
 
     return result.quotes
       .filter((q) => q.close != null)
