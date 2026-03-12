@@ -4,8 +4,10 @@ import StockCard from './StockCard'
 import StockChart from './StockChart'
 import StockNews from './StockNews'
 import MarketOverview from './market/MarketOverview'
+import GlobalNews from './news/GlobalNews'
 import PortfolioPage from './portfolio/PortfolioPage'
 import TransactionHistoryPage from './portfolio/TransactionHistoryPage'
+import ComparisonPage from './comparison/ComparisonPage'
 
 export default function MainContent() {
   const { selectedQuote } = useStock()
@@ -13,6 +15,7 @@ export default function MainContent() {
 
   if (currentPage === 'portfolio') return <PortfolioPage />
   if (currentPage === 'transactions') return <TransactionHistoryPage />
+  if (currentPage === 'compare') return <ComparisonPage />
 
   return (
     <div>
@@ -23,7 +26,10 @@ export default function MainContent() {
           <StockNews symbol={selectedQuote.symbol} />
         </>
       ) : (
-        <MarketOverview />
+        <>
+          <MarketOverview />
+          <GlobalNews />
+        </>
       )}
     </div>
   )
