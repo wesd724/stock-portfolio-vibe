@@ -103,14 +103,21 @@ export default function ScreenerPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 600, color: theme.text.primary }}>종목 목록</h2>
-        <button
-          onClick={() => fetchScreener(quoteType, sortField, order)}
-          disabled={loading}
-          title="새로고침"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
-        >
-          {loading ? '⟳' : '↻'}
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {!loading && !error && (
+            <span style={{ fontSize: '12px', color: theme.text.muted }}>
+              총 {items.length}개 · 본장 기준 · 15분 지연
+            </span>
+          )}
+          <button
+            onClick={() => fetchScreener(quoteType, sortField, order)}
+            disabled={loading}
+            title="새로고침"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
+          >
+            {loading ? '⟳' : '↻'}
+          </button>
+        </div>
       </div>
 
       {/* 필터 바 */}
@@ -211,11 +218,6 @@ export default function ScreenerPage() {
         )}
       </div>
 
-      {!loading && !error && (
-        <p style={{ marginTop: '8px', fontSize: '12px', color: theme.text.muted, textAlign: 'right' }}>
-          총 {items.length}개 종목 · 15분 지연 데이터
-        </p>
-      )}
     </div>
   )
 }

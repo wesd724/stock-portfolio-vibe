@@ -144,17 +144,13 @@ export class StocksService {
   }
 
   async getScreener(quoteType: string, sort: string, order: string) {
-    const sortFieldMap: Record<string, string> = {
-      changePercent: 'percentchange',
-      volume: 'dayvolume',
-      avgVolume3M: 'avgdailyvol3m',
-    };
-    const sortField = sortFieldMap[sort] ?? 'dayvolume';
-
-    const operands: any[] = [{ operator: 'eq', operands: ['region', 'us'] }];
-    if (quoteType !== 'ALL') {
-      operands.push({ operator: 'eq', operands: ['quoteType', quoteType] });
-    }
+    const TOP_ETFS = [
+      'SPY','QQQ','IWM','VTI','EEM','GLD','TLT','XLF','XLE','XLK',
+      'XLV','XLU','XLP','XLB','XLI','ARKK','VNQ','AGG','LQD','HYG',
+      'VEA','VWO','EFA','EWJ','FXI','GDX','SLV','USO','SMH','SOXX',
+      'IBB','XBI','TQQQ','SQQQ','UPRO','SPXL','BND','VXUS','VO','VB',
+      'SCHD','JEPI','JEPQ','NVDL','TSLL','MSFO','AMZU','IBIT','GBTC','BITO',
+    ];
 
     const toRow = (q: any) => ({
       symbol: q.symbol,
@@ -167,26 +163,69 @@ export class StocksService {
       quoteType: q.quoteType ?? 'EQUITY',
     });
 
-    try {
-      const result = await (yf as any).screener({
-        query: { operator: 'and', operands },
-        sortField,
-        sortType: order.toUpperCase(),
-        offset: 0,
-        count: 100,
-      });
-      return result.quotes.map(toRow);
-    } catch {
-      const result = await (yf as any).screener({ scrIds: 'most_actives', count: 100 });
-      const rows: any[] = result.quotes
-        .filter((q: any) => quoteType === 'ALL' || q.quoteType === quoteType)
-        .map(toRow);
-      rows.sort((a: any, b: any) => {
-        const key = sort === 'changePercent' ? 'changePercent' : sort === 'volume' ? 'volume' : 'avgVolume3M';
-        return order === 'desc' ? b[key] - a[key] : a[key] - b[key];
-      });
-      return rows;
+    // 정렬 기준에 따라 적합한 스크리너 선택
+    const equityScrId =
+      sort === 'changePercent' && order === 'desc' ? 'day_gainers' :
+      sort === 'changePercent' && order === 'asc'  ? 'day_losers'  :
+      'most_actives';
+
+    const requests: Promise<any[]>[] = [];
+
+    if (quoteType === 'EQUITY' || quoteType === 'ALL') {
+      requests.push(
+        (yf as any).screener({ scrIds: equityScrId, count: 100 })
+          .then((r: any) => r.quotes.filter((q: any) => q.quoteType === 'EQUITY'))
+          .catch(() => []),
+      );
     }
+
+    if (quoteType === 'ETF' || quoteType === 'ALL') {
+      // Yahoo Finance 웹과 동일한 ETF 전용 커스텀 쿼리
+      const etfSortField =
+        sort === 'changePercent' && order === 'desc' ? 'percentchange' :
+        sort === 'changePercent' && order === 'asc'  ? 'percentchange' :
+        sort === 'avgVolume3M' ? 'avgdailyvol3m' : 'dayvolume';
+      const etfSortType = sort === 'changePercent' && order === 'asc' ? 'ASC' : order === 'asc' ? 'ASC' : 'DESC';
+
+      requests.push(
+        (yf as any).screener({
+          query: {
+            operator: 'and',
+            operands: [
+              { operator: 'eq', operands: ['region', 'us'] },
+              { operator: 'eq', operands: ['quoteType', 'ETF'] },
+            ],
+          },
+          sortField: etfSortField,
+          sortType: etfSortType,
+          offset: 0,
+          count: 100,
+        })
+          .then((r: any) => r.quotes)
+          .catch(() =>
+            // 커스텀 쿼리 실패 시 고정 목록 fallback
+            yf.quote(TOP_ETFS as any)
+              .then((r: any) => (Array.isArray(r) ? r : [r]).filter((q: any) => q.quoteType === 'ETF'))
+              .catch(() => []),
+          ),
+      );
+    }
+
+    const results = await Promise.all(requests);
+    const combined = results.flat();
+
+    // 중복 제거
+    const seen = new Set<string>();
+    const unique = combined.filter((q: any) => {
+      if (seen.has(q.symbol)) return false;
+      seen.add(q.symbol);
+      return true;
+    });
+
+    const rows = unique.map(toRow);
+    const sortKey = sort === 'changePercent' ? 'changePercent' : sort === 'volume' ? 'volume' : 'avgVolume3M';
+    rows.sort((a, b) => order === 'desc' ? b[sortKey] - a[sortKey] : a[sortKey] - b[sortKey]);
+    return rows;
   }
 
   async search(query: string) {

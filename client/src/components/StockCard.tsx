@@ -93,25 +93,31 @@ export default function StockCard({ quote }: Props) {
               ↻
             </button>
           </div>
-          <div style={{ color: isPositive ? theme.up : theme.down, fontSize: '15px', marginTop: '2px' }}>
-            {formatChange(quote.change, quote.changePercent)}
+          <div style={{ fontSize: '15px', marginTop: '2px' }}>
+            <span style={{ fontSize: '11px', color: theme.text.muted, marginRight: '6px' }}>본장</span>
+            <span style={{ color: isPositive ? theme.up : theme.down }}>
+              {formatChange(quote.change, quote.changePercent)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* 프리/애프터장 */}
-      {quote.marketState !== 'REGULAR' && (quote.preMarketPrice || quote.postMarketPrice) && (
-        <div style={{ marginTop: '8px', fontSize: '13px', color: theme.text.secondary }}>
-          {quote.marketState === 'PRE' || quote.marketState === 'PREPRE' ? (
+      {/* 프리/애프터장 — 데이터 있으면 항상 표시 */}
+      {(quote.preMarketPrice || quote.postMarketPrice) && (
+        <div style={{ marginTop: '8px', display: 'flex', gap: '16px', fontSize: '13px', flexWrap: 'wrap' }}>
+          {quote.preMarketPrice != null && (
             <span>
-              프리장: <span style={{ color: theme.text.primary }}>{quote.currency} {quote.preMarketPrice?.toFixed(2)}</span>
+              <span style={{ color: theme.text.muted }}>프리장 </span>
+              <span style={{ color: theme.text.primary }}>{quote.currency} {quote.preMarketPrice.toFixed(2)}</span>
               {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
               </span>
             </span>
-          ) : (
+          )}
+          {quote.postMarketPrice != null && (
             <span>
-              애프터장: <span style={{ color: theme.text.primary }}>{quote.currency} {quote.postMarketPrice?.toFixed(2)}</span>
+              <span style={{ color: theme.text.muted }}>애프터장 </span>
+              <span style={{ color: theme.text.primary }}>{quote.currency} {quote.postMarketPrice.toFixed(2)}</span>
               {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
               </span>
