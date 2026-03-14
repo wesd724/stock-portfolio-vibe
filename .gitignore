@@ -25,3 +25,14 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Claude Code
+.claude/settings.local.json
+
+# SQLite WAL
+*.db-shm
+*.db-wal
+
+# Test directories
+e2e/
+server/test/
