@@ -16,7 +16,11 @@ export default function TransactionHistoryPage() {
   const sorted = [...transactions].sort((a, b) => b.createdAt - a.createdAt)
 
   if (sorted.length === 0) {
-    return <p style={{ color: theme.text.muted, fontSize: '15px' }}>거래 내역이 없습니다.</p>
+    return (
+      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
+        거래 내역이 없습니다.
+      </div>
+    )
   }
 
   const isKRW = displayCurrency === 'KRW'

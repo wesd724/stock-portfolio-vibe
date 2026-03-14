@@ -5,11 +5,12 @@ import StockSearch from '../StockSearch'
 
 const TABS: { label: string; page: Page }[] = [
   { label: '홈', page: 'home' },
-  { label: '즐겨찾기', page: 'favorites' },
   { label: '종목 목록', page: 'screener' },
+  { label: '종목 비교', page: 'compare' },
   { label: '포트폴리오', page: 'portfolio' },
   { label: '거래내역', page: 'transactions' },
-  { label: '종목 비교', page: 'compare' },
+  { label: '즐겨찾기', page: 'favorites' },
+  { label: '도움말', page: 'help' },
 ]
 
 export default function Navbar() {

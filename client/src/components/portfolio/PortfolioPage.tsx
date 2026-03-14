@@ -60,7 +60,11 @@ export default function PortfolioPage() {
   }
 
   if (holdings.length === 0) {
-    return <p style={{ color: theme.text.muted, fontSize: '15px' }}>보유 종목이 없습니다. 종목을 검색해 매수해보세요.</p>
+    return (
+      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
+        보유 종목이 없습니다. 종목을 검색해 매수해보세요.
+      </div>
+    )
   }
 
   const tableHeaders = isKRW
