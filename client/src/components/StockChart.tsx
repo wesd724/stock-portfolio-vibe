@@ -29,15 +29,19 @@ export default function StockChart({ symbol, isPositive }: Props) {
   const [interval, setInterval] = useState<ChartInterval>('1d')
   const [data, setData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(false)
+  const [refreshing, setRefreshing] = useState(false)
 
-  useEffect(() => {
-    setLoading(true)
-    fetch(`/api/stocks/chart/${symbol}?interval=${interval}`)
+  function fetchChart(sym: string, intv: ChartInterval, isRefresh = false) {
+    if (isRefresh) setRefreshing(true)
+    else setLoading(true)
+    fetch(`/api/stocks/chart/${sym}?interval=${intv}`)
       .then((res) => res.json())
       .then((d: ChartPoint[]) => setData(d))
       .catch(() => setData([]))
-      .finally(() => setLoading(false))
-  }, [symbol, interval])
+      .finally(() => { setLoading(false); setRefreshing(false) })
+  }
+
+  useEffect(() => { fetchChart(symbol, interval) }, [symbol, interval])
 
   const color = isPositive ? '#22c55e' : '#ef4444'
   const minVal = data.length ? Math.min(...data.map((d) => d.close)) : 0
@@ -74,7 +78,17 @@ export default function StockChart({ symbol, isPositive }: Props) {
             </button>
           ))}
         </div>
-        <span style={{ fontSize: '12px', color: '#475569' }}>15분 지연 데이터</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <button
+            onClick={() => fetchChart(symbol, interval, true)}
+            disabled={refreshing || loading}
+            title="새로고침"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '16px', padding: '2px' }}
+          >
+            {refreshing ? '⟳' : '↻'}
+          </button>
+          <span style={{ fontSize: '12px', color: '#475569' }}>15분 지연 데이터</span>
+        </div>
       </div>
 
       {/* 차트 */}
