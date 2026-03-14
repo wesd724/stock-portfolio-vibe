@@ -3,6 +3,7 @@ import { StockQuote } from '../types/stock'
 import { useStock } from '../context/StockContext'
 import { useTheme } from '../context/ThemeContext'
 import { useFavorites } from '../context/FavoritesContext'
+import { usePortfolio } from '../context/PortfolioContext'
 import BuyModal from './portfolio/BuyModal'
 
 interface Props {
@@ -17,10 +18,25 @@ function formatNumber(n: number | undefined) {
   return n.toLocaleString()
 }
 
+function formatNumberKRW(n: number | undefined) {
+  if (n == null) return '-'
+  if (n >= 1_000_000_000_000) return `${(n / 1_000_000_000_000).toFixed(1)}조`
+  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`
+  if (n >= 10_000) return `${(n / 10_000).toFixed(0)}만`
+  return Math.round(n).toLocaleString('ko-KR')
+}
+
 function formatChange(change: number | undefined, percent: number | undefined) {
   if (change == null || percent == null) return '-'
   const sign = change >= 0 ? '+' : ''
   return `${sign}${change.toFixed(2)} (${sign}${percent.toFixed(2)}%)`
+}
+
+function formatChangeKRW(changeUSD: number | undefined, percent: number | undefined, rate: number) {
+  if (changeUSD == null || percent == null) return '-'
+  const changeKRW = changeUSD * rate
+  const sign = changeKRW >= 0 ? '+' : ''
+  return `${sign}₩${Math.round(changeKRW).toLocaleString('ko-KR')} (${sign}${percent.toFixed(2)}%)`
 }
 
 function marketStateLabel(state: string) {
@@ -38,12 +54,23 @@ function marketStateLabel(state: string) {
 export default function StockCard({ quote }: Props) {
   const [showBuy, setShowBuy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const [viewCurrency, setViewCurrency] = useState<'USD' | 'KRW'>('USD')
   const { refreshQuote } = useStock()
   const { theme } = useTheme()
   const { toggle, isFavorite } = useFavorites()
+  const { currentUSDKRW } = usePortfolio()
   const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState)
   const favorited = isFavorite(quote.symbol)
+  const isKRW = viewCurrency === 'KRW'
+  const rate = currentUSDKRW
+
+  function px(usd: number | undefined) {
+    if (usd == null) return '-'
+    return isKRW
+      ? `₩ ${Math.round(usd * rate).toLocaleString('ko-KR')}`
+      : `${quote.currency} ${usd.toFixed(2)}`
+  }
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -86,15 +113,32 @@ export default function StockCard({ quote }: Props) {
               }}>애프터장</span>
             )}
             <span style={{ fontSize: '13px', fontWeight: 600, color: isPositive ? theme.up : theme.down }}>
-              {formatChange(quote.change, quote.changePercent)}
+              {isKRW
+                ? formatChangeKRW(quote.change, quote.changePercent, rate)
+                : formatChange(quote.change, quote.changePercent)}
             </span>
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+            {/* USD/KRW 토글 */}
+            <div style={{ display: 'flex', gap: '3px' }}>
+              {(['USD', 'KRW'] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setViewCurrency(c)}
+                  style={{
+                    padding: '3px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                    border: `1px solid ${viewCurrency === c ? theme.accent : theme.border}`,
+                    background: viewCurrency === c ? theme.accent + '33' : 'transparent',
+                    color: viewCurrency === c ? theme.accent : theme.text.muted,
+                  }}
+                >{c}</button>
+              ))}
+            </div>
             <div style={{ fontSize: '28px', fontWeight: 700, color: theme.text.primary }}>
-              {quote.currency} {quote.price?.toFixed(2)}
+              {px(quote.price)}
             </div>
             <button
               onClick={() => setShowBuy(true)}
@@ -125,13 +169,20 @@ export default function StockCard({ quote }: Props) {
               background: '#16a34a22', color: '#22c55e',
             }}>본장</span>
             <span style={{ color: isPositive ? theme.up : theme.down }}>
-              {formatChange(quote.change, quote.changePercent)}
+              {isKRW
+                ? formatChangeKRW(quote.change, quote.changePercent, rate)
+                : formatChange(quote.change, quote.changePercent)}
             </span>
           </div>
+          {isKRW && (
+            <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '4px' }}>
+              적용 환율 {rate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원/달러
+            </div>
+          )}
         </div>
       </div>
 
-      {/* 프리/애프터장 — 데이터 있으면 항상 표시 */}
+      {/* 프리/애프터장 */}
       {(quote.preMarketPrice || quote.postMarketPrice) && (
         <div style={{ marginTop: '8px', display: 'flex', gap: '16px', fontSize: '13px', flexWrap: 'wrap' }}>
           {quote.preMarketPrice != null && (
@@ -141,9 +192,11 @@ export default function StockCard({ quote }: Props) {
                 padding: '1px 5px', borderRadius: '4px',
                 background: '#f59e0b22', color: '#f59e0b',
               }}>프리장</span>
-              <span style={{ color: theme.text.primary }}>{quote.currency} {quote.preMarketPrice.toFixed(2)}</span>
+              <span style={{ color: theme.text.primary }}>{px(quote.preMarketPrice)}</span>
               {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
-                {formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
+                {isKRW
+                  ? formatChangeKRW(quote.preMarketChange, quote.preMarketChangePercent, rate)
+                  : formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
               </span>
             </span>
           )}
@@ -154,9 +207,11 @@ export default function StockCard({ quote }: Props) {
                 padding: '1px 5px', borderRadius: '4px',
                 background: '#818cf822', color: '#818cf8',
               }}>애프터장</span>
-              <span style={{ color: theme.text.primary }}>{quote.currency} {quote.postMarketPrice.toFixed(2)}</span>
+              <span style={{ color: theme.text.primary }}>{px(quote.postMarketPrice)}</span>
               {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
-                {formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
+                {isKRW
+                  ? formatChangeKRW(quote.postMarketChange, quote.postMarketChangePercent, rate)
+                  : formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
               </span>
             </span>
           )}
@@ -165,19 +220,13 @@ export default function StockCard({ quote }: Props) {
 
       {/* 당일 정보 */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '12px',
-        marginTop: '16px',
-        padding: '12px',
-        background: theme.bg.input,
-        borderRadius: '8px',
-        fontSize: '13px',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+        marginTop: '16px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[
-          { label: '시가', value: quote.open?.toFixed(2) ?? '-' },
-          { label: '고가', value: quote.dayHigh?.toFixed(2) ?? '-' },
-          { label: '저가', value: quote.dayLow?.toFixed(2) ?? '-' },
+          { label: '시가', value: px(quote.open) },
+          { label: '고가', value: px(quote.dayHigh) },
+          { label: '저가', value: px(quote.dayLow) },
           { label: '거래량', value: formatNumber(quote.volume) },
         ].map(({ label, value }) => (
           <div key={label}>
@@ -189,20 +238,16 @@ export default function StockCard({ quote }: Props) {
 
       {/* 추가 지표 */}
       <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(4, 1fr)',
-        gap: '12px',
-        marginTop: '8px',
-        padding: '12px',
-        background: theme.bg.input,
-        borderRadius: '8px',
-        fontSize: '13px',
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+        marginTop: '8px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[
-          { label: '시가총액', value: formatNumber(quote.marketCap) },
+          { label: '시가총액', value: isKRW ? `₩${formatNumberKRW(quote.marketCap * rate)}` : formatNumber(quote.marketCap) },
           { label: 'P/E', value: quote.trailingPE?.toFixed(2) ?? '-' },
           { label: '배당수익률', value: quote.dividendYield != null ? `${(quote.dividendYield * 100).toFixed(2)}%` : '-' },
-          { label: '52주 범위', value: `${quote.fiftyTwoWeekLow?.toFixed(2) ?? '-'} ~ ${quote.fiftyTwoWeekHigh?.toFixed(2) ?? '-'}` },
+          { label: '52주 범위', value: isKRW
+            ? `${px(quote.fiftyTwoWeekLow)} ~ ${px(quote.fiftyTwoWeekHigh)}`
+            : `${quote.fiftyTwoWeekLow?.toFixed(2) ?? '-'} ~ ${quote.fiftyTwoWeekHigh?.toFixed(2) ?? '-'}` },
         ].map(({ label, value }) => (
           <div key={label}>
             <div style={{ color: theme.text.muted }}>{label}</div>
@@ -211,7 +256,14 @@ export default function StockCard({ quote }: Props) {
         ))}
       </div>
     </div>
-    {showBuy && <BuyModal symbol={quote.symbol} name={quote.name} onClose={() => setShowBuy(false)} />}
+    {showBuy && (
+      <BuyModal
+        symbol={quote.symbol}
+        name={quote.name}
+        initialCurrency={viewCurrency}
+        onClose={() => setShowBuy(false)}
+      />
+    )}
     </>
   )
 }

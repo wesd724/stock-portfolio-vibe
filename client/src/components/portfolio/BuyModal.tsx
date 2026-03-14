@@ -7,6 +7,7 @@ import { Transaction } from '../../types/portfolio'
 interface Props {
   symbol: string
   name: string
+  initialCurrency?: 'USD' | 'KRW'
   onClose: () => void
 }
 
@@ -34,16 +35,16 @@ function parseInput(value: string): number {
   return parseFloat(value.replace(/,/g, '')) || 0
 }
 
-export default function BuyModal({ symbol, name, onClose }: Props) {
+export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClose }: Props) {
   const [date, setDate] = useState(today)
-  const [currency, setCurrency] = useState<'KRW' | 'USD'>('USD')
+  const [currency, setCurrency] = useState<'KRW' | 'USD'>(initialCurrency)
   const [amountRaw, setAmountRaw] = useState('')
   const [sharesRaw, setSharesRaw] = useState('')
   const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number } | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { addTransaction, accountBalance } = usePortfolio()
+  const { addTransaction, accountBalance, currentUSDKRW } = usePortfolio()
   const { theme } = useTheme()
 
   const isKRW = currency === 'KRW'
@@ -166,15 +167,17 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
           <h2 style={{ fontSize: '17px', fontWeight: 700, color: theme.text.primary }}>매수</h2>
           <div style={{ textAlign: 'right' }}>
-            {isKRW && priceInfo ? (
+            {isKRW ? (
               <>
                 <div style={{ fontSize: '12px', color: theme.text.muted }}>
                   잔액 <span style={{ color: theme.text.primary, fontWeight: 600 }}>
-                    {formatKRW(accountBalance * priceInfo.exchangeRate)}
+                    {formatKRW(accountBalance * (priceInfo?.exchangeRate ?? currentUSDKRW))}
                   </span>
                 </div>
                 <div style={{ fontSize: '11px', color: theme.text.muted }}>
-                  ({priceInfo.actualDate} 환율 {priceInfo.exchangeRate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원)
+                  {priceInfo
+                    ? `(${priceInfo.actualDate} 환율 ${priceInfo.exchangeRate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원)`
+                    : `(현재 환율 ${currentUSDKRW.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원)`}
                 </div>
               </>
             ) : (
