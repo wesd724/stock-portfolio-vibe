@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { StockQuote } from '../types/stock'
 import { useStock } from '../context/StockContext'
 import { useTheme } from '../context/ThemeContext'
+import { useFavorites } from '../context/FavoritesContext'
 import BuyModal from './portfolio/BuyModal'
 
 interface Props {
@@ -39,8 +40,10 @@ export default function StockCard({ quote }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const { refreshQuote } = useStock()
   const { theme } = useTheme()
+  const { toggle, isFavorite } = useFavorites()
   const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState)
+  const favorited = isFavorite(quote.symbol)
 
   async function handleRefresh() {
     setRefreshing(true)
@@ -83,6 +86,13 @@ export default function StockCard({ quote }: Props) {
               style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
             >
               매수
+            </button>
+            <button
+              onClick={() => toggle(quote.symbol)}
+              title={favorited ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'transparent', cursor: 'pointer', fontSize: '18px', color: favorited ? '#f59e0b' : theme.text.muted, lineHeight: 1 }}
+            >
+              {favorited ? '★' : '☆'}
             </button>
             <button
               onClick={handleRefresh}
