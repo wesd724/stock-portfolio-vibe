@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChartPoint, ChartInterval } from '../types/stock'
+import { useTheme } from '../context/ThemeContext'
 
 interface Props {
   symbol: string
@@ -30,6 +31,7 @@ export default function StockChart({ symbol, isPositive }: Props) {
   const [data, setData] = useState<ChartPoint[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
+  const { theme } = useTheme()
 
   function fetchChart(sym: string, intv: ChartInterval, isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -43,17 +45,17 @@ export default function StockChart({ symbol, isPositive }: Props) {
 
   useEffect(() => { fetchChart(symbol, interval) }, [symbol, interval])
 
-  const color = isPositive ? '#22c55e' : '#ef4444'
+  const color = isPositive ? theme.up : theme.down
   const minVal = data.length ? Math.min(...data.map((d) => d.close)) : 0
   const maxVal = data.length ? Math.max(...data.map((d) => d.close)) : 0
   const padding = (maxVal - minVal) * 0.05
 
   return (
     <div style={{
-      background: '#1e293b',
+      background: theme.bg.card,
       borderRadius: '12px',
       padding: '20px 24px',
-      border: '1px solid #334155',
+      border: `1px solid ${theme.border}`,
       marginTop: '12px',
     }}>
       {/* 헤더 */}
@@ -69,8 +71,8 @@ export default function StockChart({ symbol, isPositive }: Props) {
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '13px',
-                background: interval === item.value ? color : '#0f172a',
-                color: interval === item.value ? '#fff' : '#94a3b8',
+                background: interval === item.value ? color : theme.bg.input,
+                color: interval === item.value ? '#fff' : theme.text.secondary,
                 fontWeight: interval === item.value ? 600 : 400,
               }}
             >
@@ -83,17 +85,17 @@ export default function StockChart({ symbol, isPositive }: Props) {
             onClick={() => fetchChart(symbol, interval, true)}
             disabled={refreshing || loading}
             title="새로고침"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', fontSize: '16px', padding: '2px' }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
           >
             {refreshing ? '⟳' : '↻'}
           </button>
-          <span style={{ fontSize: '12px', color: '#475569' }}>15분 지연 데이터</span>
+          <span style={{ fontSize: '12px', color: theme.text.muted }}>15분 지연 데이터</span>
         </div>
       </div>
 
       {/* 차트 */}
       {loading ? (
-        <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#475569' }}>
+        <div style={{ height: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: theme.text.muted }}>
           불러오는 중...
         </div>
       ) : (
@@ -102,23 +104,23 @@ export default function StockChart({ symbol, isPositive }: Props) {
             <XAxis
               dataKey="time"
               tickFormatter={(t) => formatTime(t, interval)}
-              tick={{ fill: '#475569', fontSize: 11 }}
+              tick={{ fill: theme.text.muted, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               interval="preserveStartEnd"
             />
             <YAxis
               domain={[minVal - padding, maxVal + padding]}
-              tick={{ fill: '#475569', fontSize: 11 }}
+              tick={{ fill: theme.text.muted, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
               tickFormatter={(v) => v.toFixed(2)}
               width={60}
             />
             <Tooltip
-              contentStyle={{ background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', fontSize: '13px' }}
+              contentStyle={{ background: theme.bg.input, border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '13px' }}
               labelFormatter={(t) => formatTime(Number(t), interval)}
-              formatter={(v: number) => [v.toFixed(2), '종가']}
+              formatter={(v) => [(v as number).toFixed(2), '종가']}
             />
             <Line
               type="monotone"

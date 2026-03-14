@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { StockQuote } from '../types/stock'
 import { useStock } from '../context/StockContext'
+import { useTheme } from '../context/ThemeContext'
 import BuyModal from './portfolio/BuyModal'
 
 interface Props {
@@ -37,6 +38,7 @@ export default function StockCard({ quote }: Props) {
   const [showBuy, setShowBuy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const { refreshQuote } = useStock()
+  const { theme } = useTheme()
   const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState)
 
@@ -49,36 +51,36 @@ export default function StockCard({ quote }: Props) {
   return (
     <>
     <div style={{
-      background: '#1e293b',
+      background: theme.bg.card,
       borderRadius: '12px',
       padding: '20px 24px',
-      border: '1px solid #334155',
+      border: `1px solid ${theme.border}`,
     }}>
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: '#94a3b8' }}>{quote.symbol}</span>
+            <span style={{ fontSize: '13px', color: theme.text.secondary }}>{quote.symbol}</span>
             <span style={{
               fontSize: '11px',
               padding: '2px 6px',
               borderRadius: '4px',
-              background: '#0f172a',
+              background: theme.bg.input,
               color: marketState.color,
             }}>
               {marketState.label}
             </span>
           </div>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: '4px' }}>{quote.name}</h2>
+          <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
-            <div style={{ fontSize: '28px', fontWeight: 700 }}>
+            <div style={{ fontSize: '28px', fontWeight: 700, color: theme.text.primary }}>
               {quote.currency} {quote.price?.toFixed(2)}
             </div>
             <button
               onClick={() => setShowBuy(true)}
-              style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: '#22c55e', color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+              style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
             >
               매수
             </button>
@@ -86,12 +88,12 @@ export default function StockCard({ quote }: Props) {
               onClick={handleRefresh}
               disabled={refreshing}
               title="최신 정보로 업데이트"
-              style={{ padding: '6px 10px', borderRadius: '8px', border: '1px solid #334155', background: 'transparent', color: '#94a3b8', cursor: 'pointer', fontSize: '16px' }}
+              style={{ padding: '6px 10px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.text.secondary, cursor: 'pointer', fontSize: '16px' }}
             >
               ↻
             </button>
           </div>
-          <div style={{ color: isPositive ? '#22c55e' : '#ef4444', fontSize: '15px', marginTop: '2px' }}>
+          <div style={{ color: isPositive ? theme.up : theme.down, fontSize: '15px', marginTop: '2px' }}>
             {formatChange(quote.change, quote.changePercent)}
           </div>
         </div>
@@ -99,18 +101,18 @@ export default function StockCard({ quote }: Props) {
 
       {/* 프리/애프터장 */}
       {quote.marketState !== 'REGULAR' && (quote.preMarketPrice || quote.postMarketPrice) && (
-        <div style={{ marginTop: '8px', fontSize: '13px', color: '#94a3b8' }}>
+        <div style={{ marginTop: '8px', fontSize: '13px', color: theme.text.secondary }}>
           {quote.marketState === 'PRE' || quote.marketState === 'PREPRE' ? (
             <span>
-              프리장: <span style={{ color: '#f1f5f9' }}>{quote.currency} {quote.preMarketPrice?.toFixed(2)}</span>
-              {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+              프리장: <span style={{ color: theme.text.primary }}>{quote.currency} {quote.preMarketPrice?.toFixed(2)}</span>
+              {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
               </span>
             </span>
           ) : (
             <span>
-              애프터장: <span style={{ color: '#f1f5f9' }}>{quote.currency} {quote.postMarketPrice?.toFixed(2)}</span>
-              {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? '#22c55e' : '#ef4444' }}>
+              애프터장: <span style={{ color: theme.text.primary }}>{quote.currency} {quote.postMarketPrice?.toFixed(2)}</span>
+              {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
               </span>
             </span>
@@ -125,7 +127,7 @@ export default function StockCard({ quote }: Props) {
         gap: '12px',
         marginTop: '16px',
         padding: '12px',
-        background: '#0f172a',
+        background: theme.bg.input,
         borderRadius: '8px',
         fontSize: '13px',
       }}>
@@ -136,8 +138,8 @@ export default function StockCard({ quote }: Props) {
           { label: '거래량', value: formatNumber(quote.volume) },
         ].map(({ label, value }) => (
           <div key={label}>
-            <div style={{ color: '#64748b' }}>{label}</div>
-            <div style={{ color: '#f1f5f9', marginTop: '2px', fontWeight: 500 }}>{value}</div>
+            <div style={{ color: theme.text.muted }}>{label}</div>
+            <div style={{ color: theme.text.primary, marginTop: '2px', fontWeight: 500 }}>{value}</div>
           </div>
         ))}
       </div>
@@ -149,7 +151,7 @@ export default function StockCard({ quote }: Props) {
         gap: '12px',
         marginTop: '8px',
         padding: '12px',
-        background: '#0f172a',
+        background: theme.bg.input,
         borderRadius: '8px',
         fontSize: '13px',
       }}>
@@ -160,8 +162,8 @@ export default function StockCard({ quote }: Props) {
           { label: '52주 범위', value: `${quote.fiftyTwoWeekLow?.toFixed(2) ?? '-'} ~ ${quote.fiftyTwoWeekHigh?.toFixed(2) ?? '-'}` },
         ].map(({ label, value }) => (
           <div key={label}>
-            <div style={{ color: '#64748b' }}>{label}</div>
-            <div style={{ color: '#f1f5f9', marginTop: '2px', fontWeight: 500 }}>{value}</div>
+            <div style={{ color: theme.text.muted }}>{label}</div>
+            <div style={{ color: theme.text.primary, marginTop: '2px', fontWeight: 500 }}>{value}</div>
           </div>
         ))}
       </div>

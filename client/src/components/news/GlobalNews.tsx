@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useTheme } from '../../context/ThemeContext'
 
 interface NewsItem {
   title: string
@@ -38,6 +39,7 @@ export default function GlobalNews() {
   const [selected, setSelected] = useState<NewsItem | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
   const allNewsRef = useRef<NewsItem[]>([])
+  const { theme } = useTheme()
   allNewsRef.current = allNews
 
   function fetchNews(translate: boolean, isRefresh = false) {
@@ -86,18 +88,18 @@ export default function GlobalNews() {
   return (
     <>
       <div style={{
-        background: '#1e293b', borderRadius: '12px',
-        padding: '20px 24px', border: '1px solid #334155', marginTop: '12px',
+        background: theme.bg.card, borderRadius: '12px',
+        padding: '20px 24px', border: `1px solid ${theme.border}`, marginTop: '12px',
       }}>
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9', margin: 0 }}>국제 금융 뉴스</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.text.primary, margin: 0 }}>국제 금융 뉴스</h3>
             <div style={{ display: 'flex', gap: '6px' }}>
               {Object.entries(SOURCE_COLORS).map(([src, color]) => (
                 <span key={src} style={{
                   fontSize: '11px', padding: '2px 7px', borderRadius: '999px',
-                  background: '#0f172a', color, border: `1px solid ${color}`,
+                  background: theme.bg.input, color, border: `1px solid ${color}`,
                 }}>{src}</span>
               ))}
             </div>
@@ -109,8 +111,8 @@ export default function GlobalNews() {
               title="새로고침"
               style={{
                 padding: '4px 10px', borderRadius: '6px',
-                border: '1px solid #334155', background: 'transparent',
-                color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+                border: `1px solid ${theme.border}`, background: 'transparent',
+                color: theme.text.secondary, cursor: 'pointer', fontSize: '14px',
               }}
             >
               {refreshing ? '⟳' : '↻'}
@@ -120,9 +122,9 @@ export default function GlobalNews() {
               disabled={loading || translating || refreshing}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
-                border: '1px solid #334155',
-                background: translated ? '#3b82f6' : 'transparent',
-                color: translated ? '#fff' : '#94a3b8',
+                border: `1px solid ${theme.border}`,
+                background: translated ? theme.accent : 'transparent',
+                color: translated ? '#fff' : theme.text.secondary,
                 cursor: loading || translating || refreshing ? 'default' : 'pointer',
                 fontSize: '12px',
               }}
@@ -134,18 +136,18 @@ export default function GlobalNews() {
 
         {/* 뉴스 목록 */}
         {loading ? (
-          <p style={{ color: '#475569', fontSize: '14px' }}>불러오는 중...</p>
+          <p style={{ color: theme.text.muted, fontSize: '14px' }}>불러오는 중...</p>
         ) : (
           <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
             {visibleNews.map((item, i) => {
-              const color = SOURCE_COLORS[item.source] ?? '#64748b'
+              const color = SOURCE_COLORS[item.source] ?? theme.text.muted
               return (
                 <li
                   key={i}
                   onClick={() => setSelected(item)}
                   style={{
                     padding: '12px 0',
-                    borderBottom: i < visibleNews.length - 1 ? '1px solid #334155' : 'none',
+                    borderBottom: i < visibleNews.length - 1 ? `1px solid ${theme.border}` : 'none',
                     cursor: 'pointer',
                     display: 'flex', gap: '10px', alignItems: 'flex-start',
                   }}
@@ -154,12 +156,12 @@ export default function GlobalNews() {
                 >
                   <span style={{
                     fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                    background: '#0f172a', color, border: `1px solid ${color}`,
+                    background: theme.bg.input, color, border: `1px solid ${color}`,
                     flexShrink: 0, marginTop: '2px',
                   }}>{item.source}</span>
                   <div>
-                    <div style={{ fontSize: '13px', color: '#f1f5f9', lineHeight: '1.5' }}>{item.title}</div>
-                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
+                    <div style={{ fontSize: '13px', color: theme.text.primary, lineHeight: '1.5' }}>{item.title}</div>
+                    <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '3px' }}>
                       {item.publisher} · {formatDate(item.publishedAt)}
                     </div>
                   </div>
@@ -172,7 +174,7 @@ export default function GlobalNews() {
         {/* 무한 스크롤 센티넬 - 항상 렌더링 */}
         <div ref={sentinelRef} style={{ height: '1px' }} />
         {!loading && hasMore && (
-          <div style={{ textAlign: 'center', padding: '12px 0', color: '#475569', fontSize: '13px' }}>
+          <div style={{ textAlign: 'center', padding: '12px 0', color: theme.text.muted, fontSize: '13px' }}>
             스크롤하여 더 보기
           </div>
         )}
@@ -183,14 +185,14 @@ export default function GlobalNews() {
         <div
           onMouseDown={(e) => { if (e.target === e.currentTarget) setSelected(null) }}
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)',
+            position: 'fixed', inset: 0, background: theme.overlay,
             zIndex: 300, display: 'flex', alignItems: 'center',
             justifyContent: 'center', padding: '24px',
           }}
         >
           <div
             style={{
-              background: '#1e293b', border: '1px solid #334155',
+              background: theme.bg.card, border: `1px solid ${theme.border}`,
               borderRadius: '12px', padding: '28px',
               maxWidth: '560px', width: '100%',
             }}
@@ -198,18 +200,18 @@ export default function GlobalNews() {
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
               <span style={{
                 fontSize: '11px', padding: '2px 7px', borderRadius: '4px',
-                background: '#0f172a',
-                color: SOURCE_COLORS[selected.source] ?? '#64748b',
-                border: `1px solid ${SOURCE_COLORS[selected.source] ?? '#64748b'}`,
+                background: theme.bg.input,
+                color: SOURCE_COLORS[selected.source] ?? theme.text.muted,
+                border: `1px solid ${SOURCE_COLORS[selected.source] ?? theme.text.muted}`,
               }}>{selected.source}</span>
-              <span style={{ fontSize: '11px', color: '#475569' }}>
+              <span style={{ fontSize: '11px', color: theme.text.muted }}>
                 {selected.publisher} · {formatDate(selected.publishedAt)}
               </span>
             </div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, lineHeight: '1.5', color: '#f1f5f9', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, lineHeight: '1.5', color: theme.text.primary, marginBottom: '20px' }}>
               {selected.title}
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', color: theme.text.muted, marginBottom: '20px' }}>
               기사 본문은 제공되지 않습니다.
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -217,8 +219,8 @@ export default function GlobalNews() {
                 onClick={() => setSelected(null)}
                 style={{
                   padding: '8px 16px', borderRadius: '8px',
-                  border: '1px solid #334155', background: 'transparent',
-                  color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+                  border: `1px solid ${theme.border}`, background: 'transparent',
+                  color: theme.text.secondary, cursor: 'pointer', fontSize: '14px',
                 }}
               >닫기</button>
               <a
@@ -227,7 +229,7 @@ export default function GlobalNews() {
                 rel="noopener noreferrer"
                 style={{
                   padding: '8px 16px', borderRadius: '8px', border: 'none',
-                  background: '#3b82f6', color: '#fff',
+                  background: theme.accent, color: '#fff',
                   cursor: 'pointer', fontSize: '14px', textDecoration: 'none',
                 }}
               >기사 전체 보기</a>

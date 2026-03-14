@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { NewsItem } from '../types/stock'
+import { useTheme } from '../context/ThemeContext'
 
 interface Props {
   symbol: string
@@ -15,8 +16,8 @@ function formatDate(dateStr: string) {
   })
 }
 
-function NewsList({ items, onSelect }: { items: NewsItem[]; onSelect: (item: NewsItem) => void }) {
-  if (items.length === 0) return <p style={{ color: '#475569', fontSize: '13px' }}>뉴스가 없습니다.</p>
+function NewsList({ items, onSelect, theme }: { items: NewsItem[]; onSelect: (item: NewsItem) => void; theme: ReturnType<typeof useTheme>['theme'] }) {
+  if (items.length === 0) return <p style={{ color: theme.text.muted, fontSize: '13px' }}>뉴스가 없습니다.</p>
 
   return (
     <ul style={{ listStyle: 'none' }}>
@@ -26,14 +27,14 @@ function NewsList({ items, onSelect }: { items: NewsItem[]; onSelect: (item: New
           onClick={() => onSelect(item)}
           style={{
             padding: '10px 0',
-            borderBottom: i < items.length - 1 ? '1px solid #334155' : 'none',
+            borderBottom: i < items.length - 1 ? `1px solid ${theme.border}` : 'none',
             cursor: 'pointer',
           }}
           onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
           onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
         >
-          <div style={{ fontSize: '13px', color: '#f1f5f9', lineHeight: '1.4' }}>{item.title}</div>
-          <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
+          <div style={{ fontSize: '13px', color: theme.text.primary, lineHeight: '1.4' }}>{item.title}</div>
+          <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '3px' }}>
             {item.publisher} · {formatDate(item.publishedAt)}
           </div>
         </li>
@@ -49,6 +50,7 @@ export default function StockNews({ symbol }: Props) {
   const [translating, setTranslating] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<NewsItem | null>(null)
+  const { theme } = useTheme()
 
   function loadNews(translate: boolean, isRefresh = false) {
     const url = translate ? `/api/stocks/news/${symbol}?translate=true` : `/api/stocks/news/${symbol}`
@@ -82,15 +84,15 @@ export default function StockNews({ symbol }: Props) {
   return (
     <>
       <div style={{
-        background: '#1e293b',
+        background: theme.bg.card,
         borderRadius: '12px',
         padding: '20px 24px',
-        border: '1px solid #334155',
+        border: `1px solid ${theme.border}`,
         marginTop: '12px',
       }}>
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ fontSize: '15px', fontWeight: 600, color: '#f1f5f9' }}>관련 뉴스</h3>
+          <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.text.primary }}>관련 뉴스</h3>
           <div style={{ display: 'flex', gap: '6px' }}>
             <button
               onClick={() => loadNews(translated, true)}
@@ -98,8 +100,8 @@ export default function StockNews({ symbol }: Props) {
               title="새로고침"
               style={{
                 padding: '4px 10px', borderRadius: '6px',
-                border: '1px solid #334155', background: 'transparent',
-                color: '#94a3b8', cursor: 'pointer', fontSize: '14px',
+                border: `1px solid ${theme.border}`, background: 'transparent',
+                color: theme.text.secondary, cursor: 'pointer', fontSize: '14px',
               }}
             >
               {refreshing ? '⟳' : '↻'}
@@ -109,9 +111,9 @@ export default function StockNews({ symbol }: Props) {
               disabled={loading || translating || refreshing}
               style={{
                 padding: '4px 12px', borderRadius: '6px',
-                border: '1px solid #334155',
-                background: translated ? '#3b82f6' : 'transparent',
-                color: translated ? '#fff' : '#94a3b8',
+                border: `1px solid ${theme.border}`,
+                background: translated ? theme.accent : 'transparent',
+                color: translated ? '#fff' : theme.text.secondary,
                 cursor: 'pointer', fontSize: '12px',
               }}
             >
@@ -121,20 +123,20 @@ export default function StockNews({ symbol }: Props) {
         </div>
 
         {loading ? (
-          <p style={{ color: '#475569', fontSize: '14px' }}>불러오는 중...</p>
+          <p style={{ color: theme.text.muted, fontSize: '14px' }}>불러오는 중...</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
+              <div style={{ fontSize: '12px', color: theme.text.muted, marginBottom: '10px', fontWeight: 600 }}>
                 Yahoo Finance 제공
               </div>
-              <NewsList items={yahooNews} onSelect={setSelected} />
+              <NewsList items={yahooNews} onSelect={setSelected} theme={theme} />
             </div>
             <div>
-              <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '10px', fontWeight: 600 }}>
+              <div style={{ fontSize: '12px', color: theme.text.muted, marginBottom: '10px', fontWeight: 600 }}>
                 Google News
               </div>
-              <NewsList items={googleNews} onSelect={setSelected} />
+              <NewsList items={googleNews} onSelect={setSelected} theme={theme} />
             </div>
           </div>
         )}
@@ -147,7 +149,7 @@ export default function StockNews({ symbol }: Props) {
           style={{
             position: 'fixed',
             inset: 0,
-            background: 'rgba(0,0,0,0.6)',
+            background: theme.overlay,
             zIndex: 300,
             display: 'flex',
             alignItems: 'center',
@@ -157,21 +159,21 @@ export default function StockNews({ symbol }: Props) {
         >
           <div
             style={{
-              background: '#1e293b',
-              border: '1px solid #334155',
+              background: theme.bg.card,
+              border: `1px solid ${theme.border}`,
               borderRadius: '12px',
               padding: '28px',
               maxWidth: '560px',
               width: '100%',
             }}
           >
-            <div style={{ fontSize: '11px', color: '#475569', marginBottom: '10px' }}>
+            <div style={{ fontSize: '11px', color: theme.text.muted, marginBottom: '10px' }}>
               {selected.publisher} · {formatDate(selected.publishedAt)}
             </div>
-            <h2 style={{ fontSize: '16px', fontWeight: 600, lineHeight: '1.5', color: '#f1f5f9', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 600, lineHeight: '1.5', color: theme.text.primary, marginBottom: '20px' }}>
               {selected.title}
             </h2>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '20px' }}>
+            <p style={{ fontSize: '13px', color: theme.text.muted, marginBottom: '20px' }}>
               기사 본문은 제공되지 않습니다.
             </p>
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
@@ -180,9 +182,9 @@ export default function StockNews({ symbol }: Props) {
                 style={{
                   padding: '8px 16px',
                   borderRadius: '8px',
-                  border: '1px solid #334155',
+                  border: `1px solid ${theme.border}`,
                   background: 'transparent',
-                  color: '#94a3b8',
+                  color: theme.text.secondary,
                   cursor: 'pointer',
                   fontSize: '14px',
                 }}
@@ -197,7 +199,7 @@ export default function StockNews({ symbol }: Props) {
                   padding: '8px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  background: '#3b82f6',
+                  background: theme.accent,
                   color: '#fff',
                   cursor: 'pointer',
                   fontSize: '14px',

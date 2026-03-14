@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { StockQuote, StockSearchResult } from '../types/stock'
 import { useStock } from '../context/StockContext'
 import { useNavigation } from '../context/NavigationContext'
+import { useTheme } from '../context/ThemeContext'
 
 export default function StockSearch() {
   const [query, setQuery] = useState('')
@@ -11,6 +12,7 @@ export default function StockSearch() {
   const justSelectedRef = useRef(false)
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
+  const { theme } = useTheme()
 
   useEffect(() => {
     if (justSelectedRef.current) {
@@ -65,9 +67,9 @@ export default function StockSearch() {
           width: '100%',
           padding: '8px 14px',
           borderRadius: '8px',
-          border: '1px solid #334155',
-          background: '#1e293b',
-          color: '#f1f5f9',
+          border: `1px solid ${theme.border}`,
+          background: theme.bg.card,
+          color: theme.text.primary,
           fontSize: '14px',
           outline: 'none',
           boxSizing: 'border-box',
@@ -80,8 +82,8 @@ export default function StockSearch() {
           top: '100%',
           left: 0,
           right: 0,
-          background: '#1e293b',
-          border: '1px solid #334155',
+          background: theme.bg.card,
+          border: `1px solid ${theme.border}`,
           borderRadius: '8px',
           marginTop: '4px',
           listStyle: 'none',
@@ -97,13 +99,14 @@ export default function StockSearch() {
                 cursor: 'pointer',
                 display: 'flex',
                 justifyContent: 'space-between',
-                borderBottom: '1px solid #0f172a',
+                borderBottom: `1px solid ${theme.bg.input}`,
+                color: theme.text.primary,
               }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = '#0f172a')}
+              onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
               onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
               <span style={{ fontWeight: 600, fontSize: '14px' }}>{r.symbol}</span>
-              <span style={{ color: '#94a3b8', fontSize: '13px' }}>{r.name}</span>
+              <span style={{ color: theme.text.secondary, fontSize: '13px' }}>{r.name}</span>
             </li>
           ))}
         </ul>

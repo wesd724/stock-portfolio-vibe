@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
+import { useTheme } from '../../context/ThemeContext'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
   ResponsiveContainer, Legend,
@@ -81,20 +82,10 @@ function buildMergedData(
     })
 }
 
-const inputStyle: React.CSSProperties = {
-  padding: '6px 10px',
-  background: '#0f172a',
-  border: '1px solid #334155',
-  borderRadius: '6px',
-  color: '#f1f5f9',
-  fontSize: '13px',
-  outline: 'none',
-  colorScheme: 'dark',
-}
-
 export default function ComparisonPage() {
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
+  const { theme } = useTheme()
   const [symbols, setSymbols] = useState<SymbolEntry[]>([])
   const [interval, setIntervalVal] = useState<CompareInterval>('1d')
   const [dateRange, setDateRange] = useState(getDefaultRange('1d'))
@@ -105,6 +96,17 @@ export default function ComparisonPage() {
   const [searchResults, setSearchResults] = useState<SymbolEntry[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
   const justSelectedRef = useRef(false)
+
+  const inputStyle: React.CSSProperties = {
+    padding: '6px 10px',
+    background: theme.bg.input,
+    border: `1px solid ${theme.border}`,
+    borderRadius: '6px',
+    color: theme.text.primary,
+    fontSize: '13px',
+    outline: 'none',
+    colorScheme: 'dark',
+  }
 
   // 검색
   useEffect(() => {
@@ -195,15 +197,15 @@ export default function ComparisonPage() {
             disabled={symbols.length >= 10}
             style={{
               width: '100%', padding: '10px 14px',
-              background: '#1e293b', border: '1px solid #334155',
-              borderRadius: '8px', color: '#f1f5f9', fontSize: '14px',
+              background: theme.bg.card, border: `1px solid ${theme.border}`,
+              borderRadius: '8px', color: theme.text.primary, fontSize: '14px',
               outline: 'none', boxSizing: 'border-box',
             }}
           />
           {showDropdown && searchResults.length > 0 && (
             <div style={{
               position: 'absolute', top: '100%', left: 0, right: 0,
-              background: '#1e293b', border: '1px solid #334155',
+              background: theme.bg.card, border: `1px solid ${theme.border}`,
               borderRadius: '8px', zIndex: 50, maxHeight: '220px',
               overflowY: 'auto', marginTop: '4px',
             }}>
@@ -216,12 +218,12 @@ export default function ComparisonPage() {
                     style={{
                       padding: '10px 14px', cursor: added ? 'default' : 'pointer',
                       display: 'flex', gap: '10px', alignItems: 'center',
-                      borderBottom: '1px solid #0f172a', opacity: added ? 0.5 : 1,
+                      borderBottom: `1px solid ${theme.bg.input}`, opacity: added ? 0.5 : 1,
                     }}
                   >
-                    <span style={{ fontWeight: 700, color: '#f1f5f9', minWidth: '60px' }}>{r.symbol}</span>
-                    <span style={{ color: '#94a3b8', fontSize: '13px' }}>{r.name}</span>
-                    {added && <span style={{ marginLeft: 'auto', color: '#22c55e', fontSize: '12px' }}>추가됨</span>}
+                    <span style={{ fontWeight: 700, color: theme.text.primary, minWidth: '60px' }}>{r.symbol}</span>
+                    <span style={{ color: theme.text.secondary, fontSize: '13px' }}>{r.name}</span>
+                    {added && <span style={{ marginLeft: 'auto', color: theme.up, fontSize: '12px' }}>추가됨</span>}
                   </div>
                 )
               })}
@@ -235,7 +237,7 @@ export default function ComparisonPage() {
             <div key={s.symbol} style={{
               display: 'flex', alignItems: 'center', gap: '6px',
               padding: '4px 10px', borderRadius: '999px',
-              background: '#1e293b', border: `1px solid ${COLORS[i % COLORS.length]}`,
+              background: theme.bg.card, border: `1px solid ${COLORS[i % COLORS.length]}`,
               fontSize: '13px',
             }}>
               <span style={{
@@ -244,15 +246,15 @@ export default function ComparisonPage() {
               }} />
               <span
                 onClick={() => navigateToSymbol(s.symbol)}
-                style={{ color: '#f1f5f9', fontWeight: 600, cursor: 'pointer' }}
+                style={{ color: theme.text.primary, fontWeight: 600, cursor: 'pointer' }}
                 title="종목 정보 보기"
               >{s.symbol}</span>
-              <span style={{ color: '#64748b', fontSize: '11px' }}>{s.name}</span>
+              <span style={{ color: theme.text.muted, fontSize: '11px' }}>{s.name}</span>
               <button
                 onClick={() => removeSymbol(s.symbol)}
                 style={{
                   background: 'none', border: 'none', cursor: 'pointer',
-                  color: '#64748b', fontSize: '16px', padding: 0, lineHeight: 1,
+                  color: theme.text.muted, fontSize: '16px', padding: 0, lineHeight: 1,
                 }}
               >×</button>
             </div>
@@ -262,8 +264,8 @@ export default function ComparisonPage() {
 
       {/* 차트 */}
       <div style={{
-        background: '#1e293b', borderRadius: '12px',
-        padding: '20px 24px', border: '1px solid #334155',
+        background: theme.bg.card, borderRadius: '12px',
+        padding: '20px 24px', border: `1px solid ${theme.border}`,
       }}>
         {/* 컨트롤 행 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
@@ -276,8 +278,8 @@ export default function ComparisonPage() {
                 style={{
                   padding: '4px 12px', borderRadius: '6px', border: 'none',
                   cursor: 'pointer', fontSize: '13px',
-                  background: interval === item.value ? '#3b82f6' : '#0f172a',
-                  color: interval === item.value ? '#fff' : '#94a3b8',
+                  background: interval === item.value ? theme.accent : theme.bg.input,
+                  color: interval === item.value ? '#fff' : theme.text.secondary,
                   fontWeight: interval === item.value ? 600 : 400,
                 }}
               >{item.label}</button>
@@ -293,7 +295,7 @@ export default function ComparisonPage() {
               onChange={(e) => setPendingRange((p) => ({ ...p, from: e.target.value }))}
               style={inputStyle}
             />
-            <span style={{ color: '#475569', fontSize: '13px' }}>~</span>
+            <span style={{ color: theme.text.muted, fontSize: '13px' }}>~</span>
             <input
               type="date"
               value={pendingRange.to}
@@ -309,8 +311,8 @@ export default function ComparisonPage() {
                 padding: '6px 14px', borderRadius: '6px', border: 'none',
                 cursor: rangeInvalid || symbols.length === 0 ? 'default' : 'pointer',
                 fontSize: '13px', fontWeight: 600,
-                background: rangeInvalid || symbols.length === 0 ? '#1e3a5f' : '#3b82f6',
-                color: rangeInvalid || symbols.length === 0 ? '#475569' : '#fff',
+                background: rangeInvalid || symbols.length === 0 ? theme.bg.hover : theme.accent,
+                color: rangeInvalid || symbols.length === 0 ? theme.text.muted : '#fff',
               }}
             >조회</button>
           </div>
@@ -319,14 +321,14 @@ export default function ComparisonPage() {
         {symbols.length === 0 ? (
           <div style={{
             height: '320px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#475569', fontSize: '14px',
+            justifyContent: 'center', color: theme.text.muted, fontSize: '14px',
           }}>
             종목을 추가해 차트를 비교하세요
           </div>
         ) : isLoading ? (
           <div style={{
             height: '320px', display: 'flex', alignItems: 'center',
-            justifyContent: 'center', color: '#475569',
+            justifyContent: 'center', color: theme.text.muted,
           }}>
             불러오는 중...
           </div>
@@ -336,13 +338,13 @@ export default function ComparisonPage() {
               <XAxis
                 dataKey="time"
                 tickFormatter={(t) => formatTime(Number(t), interval)}
-                tick={{ fill: '#475569', fontSize: 11 }}
+                tick={{ fill: theme.text.muted, fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 interval="preserveStartEnd"
               />
               <YAxis
-                tick={{ fill: '#475569', fontSize: 11 }}
+                tick={{ fill: theme.text.muted, fontSize: 11 }}
                 tickLine={false}
                 axisLine={false}
                 tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`}
@@ -350,17 +352,18 @@ export default function ComparisonPage() {
               />
               <Tooltip
                 contentStyle={{
-                  background: '#0f172a', border: '1px solid #334155',
+                  background: theme.bg.input, border: `1px solid ${theme.border}`,
                   borderRadius: '8px', fontSize: '12px',
                 }}
                 labelFormatter={(t) => formatTime(Number(t), interval)}
-                formatter={(v: number, name: string) => [
-                  `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`, name,
-                ]}
+                formatter={(v, name) => {
+                  const n = v as number
+                  return [`${n >= 0 ? '+' : ''}${n.toFixed(2)}%`, name as string]
+                }}
               />
               <Legend
                 formatter={(value) => (
-                  <span style={{ color: '#94a3b8', fontSize: '12px' }}>{value}</span>
+                  <span style={{ color: theme.text.secondary, fontSize: '12px' }}>{value}</span>
                 )}
               />
               {symbols.map((s, i) => (
