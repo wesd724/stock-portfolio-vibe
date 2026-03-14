@@ -3,19 +3,50 @@ import { usePortfolio } from '../../context/PortfolioContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
-import { computeSummary } from '../../utils/portfolioCalc'
 
-function fmt(n: number) {
-  return n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+function formatKRW(amount: number): string {
+  return '₩' + Math.round(amount).toLocaleString('ko-KR')
+}
+
+function formatUSD(amount: number): string {
+  return '$' + amount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export default function PortfolioPage() {
-  const { holdings, refreshCurrentPrices } = usePortfolio()
+  const { holdings, refreshCurrentPrices, displayCurrency, toggleDisplayCurrency } = usePortfolio()
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
-  const summary = computeSummary(holdings)
-  const isPositive = summary.gainLoss >= 0
+
+  const isKRW = displayCurrency === 'KRW'
+
+  // Compute summary from holdings directly
+  const totalCost = holdings.reduce((s, h) => s + h.totalCost, 0)
+  const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0)
+  const gainLoss = totalValue - totalCost
+  const gainLossPercent = totalCost > 0 ? (gainLoss / totalCost) * 100 : 0
+  const totalCostKrw = holdings.reduce((s, h) => s + h.totalCostKrw, 0)
+  const totalValueKrw = holdings.reduce((s, h) => s + h.currentValueKrw, 0)
+  const gainLossKrw = totalValueKrw - totalCostKrw
+  const gainLossPercentKrw = totalCostKrw > 0 ? (gainLossKrw / totalCostKrw) * 100 : 0
+
+  const summaryGainLoss = isKRW ? gainLossKrw : gainLoss
+  const summaryGainLossPercent = isKRW ? gainLossPercentKrw : gainLossPercent
+  const isPositive = summaryGainLoss >= 0
+
+  const summaryCards = isKRW
+    ? [
+        { label: '총 투자금', value: formatKRW(totalCostKrw) },
+        { label: '평가금액', value: formatKRW(totalValueKrw) },
+        { label: '평가손익', value: `${isPositive ? '+' : ''}${formatKRW(summaryGainLoss)}`, color: isPositive ? theme.up : theme.down },
+        { label: '수익률', value: `${isPositive ? '+' : ''}${summaryGainLossPercent.toFixed(2)}%`, color: isPositive ? theme.up : theme.down },
+      ]
+    : [
+        { label: '총 투자금', value: formatUSD(totalCost) },
+        { label: '평가금액', value: formatUSD(totalValue) },
+        { label: '평가손익', value: `${isPositive ? '+' : ''}${formatUSD(summaryGainLoss)}`, color: isPositive ? theme.up : theme.down },
+        { label: '수익률', value: `${isPositive ? '+' : ''}${summaryGainLossPercent.toFixed(2)}%`, color: isPositive ? theme.up : theme.down },
+      ]
 
   useEffect(() => { refreshCurrentPrices() }, [])
 
@@ -32,16 +63,35 @@ export default function PortfolioPage() {
     return <p style={{ color: theme.text.muted, fontSize: '15px' }}>보유 종목이 없습니다. 종목을 검색해 매수해보세요.</p>
   }
 
+  const tableHeaders = isKRW
+    ? ['종목', '보유수량', '평균단가(USD)', '현재가(USD)', '평가금액', '손익', '수익률', '환차손익', '가격손익']
+    : ['종목', '보유수량', '평균단가', '현재가', '평가금액', '손익', '수익률']
+
   return (
     <div>
+      {/* 헤더 영역: 통화 토글 */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '6px' }}>
+          {(['KRW', 'USD'] as const).map((c) => (
+            <button
+              key={c}
+              onClick={toggleDisplayCurrency}
+              style={{
+                padding: '5px 14px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
+                border: `1px solid ${displayCurrency === c ? theme.up : theme.border}`,
+                background: displayCurrency === c ? theme.upBg : 'transparent',
+                color: displayCurrency === c ? theme.up : theme.text.secondary,
+              }}
+            >
+              {c}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {/* 요약 */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
-        {[
-          { label: '총 투자금', value: `$${fmt(summary.totalCost)}` },
-          { label: '평가금액', value: `$${fmt(summary.totalValue)}` },
-          { label: '평가손익', value: `${isPositive ? '+' : ''}$${fmt(summary.gainLoss)}`, color: isPositive ? theme.up : theme.down },
-          { label: '수익률', value: `${isPositive ? '+' : ''}${fmt(summary.gainLossPercent)}%`, color: isPositive ? theme.up : theme.down },
-        ].map(({ label, value, color }) => (
+        {summaryCards.map(({ label, value, color }) => (
           <div key={label} style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '16px' }}>
             <div style={{ fontSize: '12px', color: theme.text.muted, marginBottom: '6px' }}>{label}</div>
             <div style={{ fontSize: '18px', fontWeight: 700, color: color ?? theme.text.primary }}>{value}</div>
@@ -54,14 +104,21 @@ export default function PortfolioPage() {
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
           <thead>
             <tr style={{ background: theme.bg.input, color: theme.text.muted }}>
-              {['종목', '보유수량', '평균단가', '현재가', '평가금액', '손익', '수익률'].map((h) => (
+              {tableHeaders.map((h) => (
                 <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {holdings.map((h) => {
-              const pos = h.gainLoss >= 0
+              const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
+              const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
+              const pos = gainLossVal >= 0
+              const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
+              const gainLossDisplay = isKRW
+                ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
+                : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
+
               return (
                 <tr
                   key={h.symbol}
@@ -75,15 +132,25 @@ export default function PortfolioPage() {
                     <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${fmt(h.avgCostPerShare)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${fmt(h.currentPrice)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${fmt(h.currentValue)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toFixed(2)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toFixed(2)}</td>
+                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
-                    {pos ? '+' : ''}${fmt(h.gainLoss)}
+                    {gainLossDisplay}
                   </td>
                   <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
-                    {pos ? '+' : ''}{fmt(h.gainLossPercent)}%
+                    {pos ? '+' : ''}{gainLossPercentVal.toFixed(2)}%
                   </td>
+                  {isKRW && (
+                    <>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>
+                        {h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>
+                        {h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}
+                      </td>
+                    </>
+                  )}
                 </tr>
               )
             })}

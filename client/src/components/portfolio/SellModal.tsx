@@ -14,10 +14,18 @@ interface Props {
 
 const today = new Date().toISOString().split('T')[0]
 
+function formatKRW(amount: number): string {
+  return '₩' + Math.round(amount).toLocaleString('ko-KR')
+}
+
+function formatUSD(amount: number): string {
+  return '$' + amount.toFixed(2)
+}
+
 export default function SellModal({ symbol, name, maxShares, minDate, onClose }: Props) {
   const [date, setDate] = useState(today)
   const [shares, setShares] = useState('')
-  const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string } | null>(null)
+  const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number } | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -34,10 +42,18 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
     setError(null)
     setPriceInfo(null)
     try {
-      const res = await fetch(`/api/stocks/price-at/${symbol}?date=${date}`)
-      if (!res.ok) throw new Error('해당 날짜 주가를 찾을 수 없습니다.')
-      const data = await res.json()
-      setPriceInfo({ price: data.price, actualDate: data.date })
+      const [priceRes, forexRes] = await Promise.all([
+        fetch(`/api/stocks/price-at/${symbol}?date=${date}`),
+        fetch(`/api/stocks/forex/rate?date=${date}`),
+      ])
+      if (!priceRes.ok) throw new Error('해당 날짜 주가를 찾을 수 없습니다.')
+      const priceData = await priceRes.json()
+      let exchangeRate = 1300
+      if (forexRes.ok) {
+        const forexData = await forexRes.json()
+        exchangeRate = forexData.rate ?? 1300
+      }
+      setPriceInfo({ price: priceData.price, actualDate: priceData.date, exchangeRate })
     } catch (e) {
       setError(e instanceof Error ? e.message : '오류가 발생했습니다.')
     } finally {
@@ -60,6 +76,8 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
       priceAtDate: priceInfo.price,
       shares: sharesNum,
       amount: priceInfo.price * sharesNum,
+      exchangeRate: priceInfo.exchangeRate,
+      currency: 'KRW',
       createdAt: Date.now(),
     }
     await addTransaction(tx)
@@ -68,7 +86,8 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
   }
 
   const sharesNum = parseFloat(shares)
-  const sellAmount = priceInfo && shares ? priceInfo.price * sharesNum : null
+  const sellAmountUSD = priceInfo && shares ? priceInfo.price * sharesNum : null
+  const sellAmountKRW = sellAmountUSD != null && priceInfo ? sellAmountUSD * priceInfo.exchangeRate : null
   const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares + 1e-9 && date >= minDate
 
   return createPortal(
@@ -102,8 +121,16 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
 
         {priceInfo && (
           <div style={{ background: theme.bg.input, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
-            <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} 종가 </span>
-            <span style={{ color: theme.text.primary, fontWeight: 600 }}>${priceInfo.price.toFixed(2)}</span>
+            <div style={{ marginBottom: '4px' }}>
+              <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} 종가  </span>
+              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
+              <span style={{ color: theme.text.muted }}>  ≈  </span>
+              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
+            </div>
+            <div>
+              <span style={{ color: theme.text.muted }}>환율  </span>
+              <span style={{ color: theme.text.primary }}>{priceInfo.exchangeRate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })} 원/달러</span>
+            </div>
           </div>
         )}
 
@@ -134,9 +161,15 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
           <p style={{ color: theme.down, fontSize: '12px', marginTop: '6px' }}>보유 수량을 초과했습니다.</p>
         )}
 
-        {sellAmount != null && sellAmount > 0 && (
+        {sellAmountUSD != null && sellAmountUSD > 0 && (
           <p style={{ fontSize: '13px', color: theme.text.muted, marginTop: '8px' }}>
-            예상 매도금액: <span style={{ color: theme.text.primary }}>${sellAmount.toFixed(2)}</span>
+            예상 매도금액: <span style={{ color: theme.text.primary }}>{formatUSD(sellAmountUSD)}</span>
+            {sellAmountKRW != null && (
+              <>
+                <span>  ≈  </span>
+                <span style={{ color: theme.text.primary }}>{formatKRW(sellAmountKRW)}</span>
+              </>
+            )}
           </p>
         )}
 

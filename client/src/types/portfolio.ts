@@ -3,11 +3,13 @@ export interface Transaction {
   type: 'BUY' | 'SELL'
   symbol: string
   name: string
-  date: string          // 'YYYY-MM-DD'
+  date: string
   priceAtDate: number
   shares: number
-  amount: number        // priceAtDate * shares
-  createdAt: number     // Date.now()
+  amount: number        // USD amount
+  exchangeRate: number  // USDKRW at transaction date
+  currency: 'USD' | 'KRW'  // what currency user used for input
+  createdAt: number
 }
 
 export interface Holding {
@@ -15,9 +17,17 @@ export interface Holding {
   name: string
   totalShares: number
   avgCostPerShare: number
-  totalCost: number
+  totalCost: number        // USD cost basis
+  avgBuyRate: number       // weighted avg USDKRW at buy time
   currentPrice: number
-  currentValue: number
-  gainLoss: number
-  gainLossPercent: number
+  currentValue: number     // USD
+  gainLoss: number         // USD
+  gainLossPercent: number  // USD basis
+  // KRW fields (requires currentUSDKRW)
+  currentValueKrw: number
+  totalCostKrw: number     // cost at buy-time exchange rates
+  gainLossKrw: number      // total KRW P&L
+  gainLossPercentKrw: number
+  fxGainLossKrw: number    // FX portion of KRW P&L
+  priceGainLossKrw: number // price portion of KRW P&L
 }

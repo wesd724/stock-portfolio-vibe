@@ -10,18 +10,31 @@ interface Props {
   holding: Holding
 }
 
+function formatKRW(amount: number): string {
+  return '₩' + Math.round(amount).toLocaleString('ko-KR')
+}
+
+function formatUSD(amount: number): string {
+  return '$' + amount.toFixed(2)
+}
+
 export default function HoldingItem({ holding }: Props) {
   const [showSell, setShowSell] = useState(false)
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
-  const { transactions } = usePortfolio()
+  const { transactions, displayCurrency } = usePortfolio()
 
   const earliestBuyDate = transactions
     .filter((t) => t.symbol === holding.symbol && t.type === 'BUY')
     .map((t) => t.date)
     .sort()[0] ?? '1980-01-01'
-  const isPositive = holding.gainLoss >= 0
+
+  const isKRW = displayCurrency === 'KRW'
+  const gainLoss = isKRW ? holding.gainLossKrw : holding.gainLoss
+  const isPositive = gainLoss >= 0
+  const gainLossPercent = isKRW ? holding.gainLossPercentKrw : holding.gainLossPercent
+  const valueDisplay = isKRW ? formatKRW(holding.currentValueKrw) : formatUSD(holding.currentValue)
 
   async function handleClick() {
     setPage('home')
@@ -47,9 +60,9 @@ export default function HoldingItem({ holding }: Props) {
               <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '1px' }}>{holding.totalShares.toFixed(4)}주</div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '13px', color: theme.text.primary }}>${holding.currentValue.toFixed(2)}</div>
+              <div style={{ fontSize: '13px', color: theme.text.primary }}>{valueDisplay}</div>
               <div style={{ fontSize: '11px', color: isPositive ? theme.up : theme.down }}>
-                {isPositive ? '+' : ''}{holding.gainLossPercent.toFixed(2)}%
+                {isPositive ? '+' : ''}{gainLossPercent.toFixed(2)}%
               </div>
             </div>
           </div>

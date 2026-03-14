@@ -40,4 +40,14 @@ export class StocksController {
   search(@Query('q') query: string) {
     return this.stocksService.search(query);
   }
+
+  @Get('forex/rate')
+  getForexRate(@Query('date') date: string) {
+    return this.stocksService.getForexRate(date);
+  }
+
+  @Get('forex/current')
+  getCurrentForexRate() {
+    return this.stocksService.getCurrentForexRate();
+  }
 }

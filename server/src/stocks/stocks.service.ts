@@ -153,4 +153,19 @@ export class StocksService {
         exchange: 'exchange' in q ? q.exchange : '',
       }));
   }
+
+  async getForexRate(date: string): Promise<{ rate: number; date: string }> {
+    const period1 = new Date(date);
+    const period2 = new Date(date);
+    period2.setDate(period2.getDate() + 5);
+    const result = await yf.chart('KRW=X', { period1, period2, interval: '1d' });
+    const quotes = result.quotes.filter((q) => q.close != null);
+    if (quotes.length === 0) throw new NotFoundException(`환율 데이터 없음: ${date}`);
+    return { rate: quotes[0].close as number, date: quotes[0].date.toISOString().split('T')[0] };
+  }
+
+  async getCurrentForexRate(): Promise<{ rate: number }> {
+    const result = await yf.quote('KRW=X');
+    return { rate: result.regularMarketPrice ?? 1300 };
+  }
 }

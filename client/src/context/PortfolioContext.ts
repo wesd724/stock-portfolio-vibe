@@ -7,23 +7,33 @@ interface PortfolioStore {
   transactions: Transaction[]
   holdings: Holding[]
   isInitialized: boolean
+  currentUSDKRW: number
+  displayCurrency: 'KRW' | 'USD'
 
   init: () => Promise<void>
   addTransaction: (tx: Transaction) => Promise<void>
   removeTransaction: (id: string) => Promise<void>
   refreshCurrentPrices: () => Promise<void>
-  getSummary: () => { totalCost: number; totalValue: number; gainLoss: number; gainLossPercent: number }
+  toggleDisplayCurrency: () => void
+  getSummary: () => {
+    totalCost: number; totalValue: number; gainLoss: number; gainLossPercent: number
+    totalCostKrw: number; totalValueKrw: number; gainLossKrw: number; gainLossPercentKrw: number
+    fxGainLossKrw: number; priceGainLossKrw: number
+  }
 }
 
 export const usePortfolio = create<PortfolioStore>((set, get) => ({
   transactions: [],
   holdings: [],
   isInitialized: false,
+  currentUSDKRW: 1300,
+  displayCurrency: 'KRW',
 
   init: async () => {
     const storage = getStorage()
     const transactions = await storage.load()
-    const holdings = computeHoldings(transactions, {})
+    const { currentUSDKRW } = get()
+    const holdings = computeHoldings(transactions, {}, currentUSDKRW)
     set({ transactions, holdings, isInitialized: true })
     if (transactions.length > 0) {
       await get().refreshCurrentPrices()
@@ -54,20 +64,29 @@ export const usePortfolio = create<PortfolioStore>((set, get) => ({
       return
     }
 
-    const results = await Promise.allSettled(
-      symbols.map((s) => fetch(`/api/stocks/quote/${s}`).then((r) => r.json())),
-    )
+    const [priceResults, forexResult] = await Promise.all([
+      Promise.allSettled(
+        symbols.map((s) => fetch(`/api/stocks/quote/${s}`).then((r) => r.json())),
+      ),
+      fetch('/api/stocks/forex/current').then((r) => r.json()).catch(() => ({ rate: 1300 })),
+    ])
+
+    const currentUSDKRW: number = forexResult.rate ?? 1300
 
     const currentPrices: Record<string, number> = {}
-    results.forEach((result, i) => {
+    priceResults.forEach((result, i) => {
       if (result.status === 'fulfilled') {
         currentPrices[symbols[i]] = result.value.price
       }
     })
 
-    const holdings = computeHoldings(transactions, currentPrices)
-    set({ holdings })
+    const holdings = computeHoldings(transactions, currentPrices, currentUSDKRW)
+    set({ holdings, currentUSDKRW })
   },
 
-  getSummary: () => computeSummary(get().holdings),
+  toggleDisplayCurrency: () => {
+    set((state) => ({ displayCurrency: state.displayCurrency === 'KRW' ? 'USD' : 'KRW' }))
+  },
+
+  getSummary: () => computeSummary(get().holdings, get().currentUSDKRW),
 }))
