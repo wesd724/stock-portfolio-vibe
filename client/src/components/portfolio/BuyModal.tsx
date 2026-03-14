@@ -20,16 +20,63 @@ function formatUSD(amount: number): string {
   return '$' + amount.toFixed(2)
 }
 
+// 입력값 포맷 (쉼표 추가)
+function fmtInput(value: string, integerOnly: boolean): string {
+  const clean = integerOnly
+    ? value.replace(/[^0-9]/g, '')
+    : value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+  const parts = clean.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.length > 1 ? parts.join('.') : parts[0]
+}
+
+function parseInput(value: string): number {
+  return parseFloat(value.replace(/,/g, '')) || 0
+}
+
 export default function BuyModal({ symbol, name, onClose }: Props) {
   const [date, setDate] = useState(today)
-  const [amount, setAmount] = useState('')
-  const [currency, setCurrency] = useState<'KRW' | 'USD'>('KRW')
+  const [currency, setCurrency] = useState<'KRW' | 'USD'>('USD')
+  const [amountRaw, setAmountRaw] = useState('')
+  const [sharesRaw, setSharesRaw] = useState('')
   const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number } | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { addTransaction } = usePortfolio()
   const { theme } = useTheme()
+
+  const isKRW = currency === 'KRW'
+
+  function calcSharesFromAmount(amountNum: number, info: typeof priceInfo): string {
+    if (!info || amountNum <= 0) return ''
+    const shares = isKRW
+      ? (amountNum / info.exchangeRate) / info.price
+      : amountNum / info.price
+    return fmtInput(shares.toFixed(6).replace(/\.?0+$/, ''), false)
+  }
+
+  function calcAmountFromShares(sharesNum: number, info: typeof priceInfo): string {
+    if (!info || sharesNum <= 0) return ''
+    const amount = isKRW
+      ? sharesNum * info.price * info.exchangeRate
+      : sharesNum * info.price
+    return fmtInput(isKRW ? Math.round(amount).toString() : amount.toFixed(2), isKRW)
+  }
+
+  function handleAmountChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = fmtInput(e.target.value, isKRW)
+    setAmountRaw(formatted)
+    const num = parseInput(formatted)
+    setSharesRaw(calcSharesFromAmount(num, priceInfo))
+  }
+
+  function handleSharesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const formatted = fmtInput(e.target.value, false)
+    setSharesRaw(formatted)
+    const num = parseInput(formatted)
+    setAmountRaw(calcAmountFromShares(num, priceInfo))
+  }
 
   async function fetchPrice() {
     if (!date) return
@@ -48,7 +95,16 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
         const forexData = await forexRes.json()
         exchangeRate = forexData.rate ?? 1300
       }
-      setPriceInfo({ price: priceData.price, actualDate: priceData.date, exchangeRate })
+      const info = { price: priceData.price, actualDate: priceData.date, exchangeRate }
+      setPriceInfo(info)
+      // 기존 입력값으로 반대쪽 재계산
+      const aNum = parseInput(amountRaw)
+      const sNum = parseInput(sharesRaw)
+      if (aNum > 0) {
+        setSharesRaw(calcSharesFromAmount(aNum, info))
+      } else if (sNum > 0) {
+        setAmountRaw(calcAmountFromShares(sNum, info))
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : '오류가 발생했습니다.')
     } finally {
@@ -56,23 +112,21 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
     }
   }
 
+  function handleCurrencyChange(c: 'KRW' | 'USD') {
+    setCurrency(c)
+    setAmountRaw('')
+    setSharesRaw('')
+    setPriceInfo(null)
+  }
+
   async function handleBuy() {
-    if (!priceInfo || !amount) return
-    const amountNum = parseFloat(amount)
-    if (amountNum <= 0) return
+    if (!priceInfo) return
+    const sharesNum = parseInput(sharesRaw)
+    const amountNum = parseInput(amountRaw)
+    if (sharesNum <= 0 || amountNum <= 0) return
 
     setSubmitting(true)
-    let shares: number
-    let amountUSD: number
-
-    if (currency === 'KRW') {
-      amountUSD = amountNum / priceInfo.exchangeRate
-      shares = amountUSD / priceInfo.price
-    } else {
-      amountUSD = amountNum
-      shares = amountNum / priceInfo.price
-    }
-
+    const amountUSD = isKRW ? amountNum / priceInfo.exchangeRate : amountNum
     const tx: Transaction = {
       id: crypto.randomUUID(),
       type: 'BUY',
@@ -80,7 +134,7 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
       name,
       date: priceInfo.actualDate,
       priceAtDate: priceInfo.price,
-      shares,
+      shares: sharesNum,
       amount: amountUSD,
       exchangeRate: priceInfo.exchangeRate,
       currency,
@@ -91,22 +145,14 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
     onClose()
   }
 
-  const amountNum = amount ? parseFloat(amount) : 0
-  let estimatedShares: number | null = null
-  let estimatedUSD: number | null = null
-  let estimatedKRW: number | null = null
+  const sharesNum = parseInput(sharesRaw)
+  const amountNum = parseInput(amountRaw)
+  const isValid = priceInfo && sharesNum > 0 && amountNum > 0
 
-  if (priceInfo && amountNum > 0) {
-    if (currency === 'KRW') {
-      const usd = amountNum / priceInfo.exchangeRate
-      estimatedShares = usd / priceInfo.price
-      estimatedUSD = usd
-      estimatedKRW = amountNum
-    } else {
-      estimatedShares = amountNum / priceInfo.price
-      estimatedUSD = amountNum
-      estimatedKRW = amountNum * priceInfo.exchangeRate
-    }
+  const inputStyle = {
+    flex: 1, padding: '8px 12px', borderRadius: '8px',
+    border: `1px solid ${theme.border}`, background: theme.bg.input,
+    color: theme.text.primary, fontSize: '14px',
   }
 
   return createPortal(
@@ -114,7 +160,7 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
       style={{ position: 'fixed', inset: 0, background: theme.overlay, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
     >
-      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '440px' }}>
+      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '460px' }}>
         <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '4px', color: theme.text.primary }}>매수</h2>
         <p style={{ fontSize: '13px', color: theme.text.muted, marginBottom: '20px' }}>{symbol} · {name}</p>
 
@@ -122,23 +168,19 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
         <label style={{ fontSize: '13px', color: theme.text.secondary }}>투자 날짜</label>
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px', marginBottom: '16px' }}>
           <input
-            type="date"
-            value={date}
-            max={today}
-            min="1980-01-01"
-            onChange={(e) => { setDate(e.target.value); setPriceInfo(null) }}
-            style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.primary, fontSize: '14px', colorScheme: 'dark' }}
+            type="date" value={date} max={today} min="1980-01-01"
+            onChange={(e) => { setDate(e.target.value); setPriceInfo(null); setSharesRaw(''); setAmountRaw('') }}
+            style={{ ...inputStyle, flex: 1, colorScheme: 'dark' }}
           />
           <button
-            onClick={fetchPrice}
-            disabled={loadingPrice || !date}
+            onClick={fetchPrice} disabled={loadingPrice || !date}
             style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: theme.border, color: theme.text.primary, cursor: 'pointer', fontSize: '13px' }}
           >
             {loadingPrice ? '조회 중...' : '가격 조회'}
           </button>
         </div>
 
-        {/* 가격 결과 */}
+        {/* 가격 정보 */}
         {priceInfo && (
           <div style={{ background: theme.bg.input, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ marginBottom: '4px' }}>
@@ -157,48 +199,53 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
         {error && <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
 
         {/* 통화 토글 */}
-        <div style={{ display: 'flex', gap: '6px', marginBottom: '8px' }}>
+        <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
           {(['KRW', 'USD'] as const).map((c) => (
-            <button
-              key={c}
-              onClick={() => setCurrency(c)}
+            <button key={c} onClick={() => handleCurrencyChange(c)}
               style={{
                 padding: '4px 12px', borderRadius: '6px', fontSize: '13px', fontWeight: 600, cursor: 'pointer',
                 border: `1px solid ${currency === c ? theme.up : theme.border}`,
                 background: currency === c ? theme.upBg : 'transparent',
                 color: currency === c ? theme.up : theme.text.secondary,
               }}
-            >
-              {c}
-            </button>
+            >{c}</button>
           ))}
         </div>
 
-        {/* 투자금액 */}
-        <label style={{ fontSize: '13px', color: theme.text.secondary }}>
-          투자 금액 ({currency === 'KRW' ? 'KRW' : 'USD'})
-        </label>
-        <input
-          type="number"
-          value={amount}
-          min="1"
-          onChange={(e) => setAmount(e.target.value)}
-          placeholder={currency === 'KRW' ? '예: 1000000' : '예: 1000'}
-          style={{ width: '100%', marginTop: '6px', padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.primary, fontSize: '14px', boxSizing: 'border-box' }}
-        />
+        {/* 금액 / 주수 입력 */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+          <div>
+            <label style={{ fontSize: '13px', color: theme.text.secondary }}>
+              투자 금액 ({isKRW ? 'KRW' : 'USD'})
+            </label>
+            <input
+              type="text" inputMode="decimal"
+              value={amountRaw}
+              onChange={handleAmountChange}
+              placeholder={isKRW ? '1,000,000' : '1,000.00'}
+              style={{ ...inputStyle, width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: '13px', color: theme.text.secondary }}>주 수</label>
+            <input
+              type="text" inputMode="decimal"
+              value={sharesRaw}
+              onChange={handleSharesChange}
+              placeholder="0.0000"
+              style={{ ...inputStyle, width: '100%', marginTop: '6px', boxSizing: 'border-box' }}
+            />
+          </div>
+        </div>
 
-        {/* 예상 수량 */}
-        {estimatedShares != null && estimatedShares > 0 && (
-          <p style={{ fontSize: '13px', color: theme.text.muted, marginTop: '8px' }}>
-            예상 수량: <span style={{ color: theme.text.primary }}>{estimatedShares.toFixed(4)}주</span>
-            {estimatedUSD != null && estimatedKRW != null && (
-              <span style={{ marginLeft: '8px' }}>
-                (USD: <span style={{ color: theme.text.primary }}>{formatUSD(estimatedUSD)}</span>
-                {' | '}
-                KRW: <span style={{ color: theme.text.primary }}>{formatKRW(estimatedKRW)}</span>)
-              </span>
-            )}
-          </p>
+        {/* 환산 미리보기 */}
+        {priceInfo && sharesNum > 0 && amountNum > 0 && (
+          <div style={{ marginTop: '10px', fontSize: '12px', color: theme.text.muted }}>
+            {isKRW
+              ? <>≈ <span style={{ color: theme.text.secondary }}>{formatUSD(amountNum / priceInfo.exchangeRate)}</span> · <span style={{ color: theme.text.secondary }}>{sharesNum.toFixed(6).replace(/\.?0+$/, '')}주</span></>
+              : <>≈ <span style={{ color: theme.text.secondary }}>{formatKRW(amountNum * priceInfo.exchangeRate)}</span> · <span style={{ color: theme.text.secondary }}>{sharesNum.toFixed(6).replace(/\.?0+$/, '')}주</span></>
+            }
+          </div>
         )}
 
         {/* 버튼 */}
@@ -207,9 +254,8 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
             취소
           </button>
           <button
-            onClick={handleBuy}
-            disabled={!priceInfo || !amount || parseFloat(amount) <= 0 || submitting}
-            style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600, opacity: (!priceInfo || !amount || parseFloat(amount) <= 0) ? 0.4 : 1 }}
+            onClick={handleBuy} disabled={!isValid || submitting}
+            style={{ padding: '8px 20px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600, opacity: !isValid ? 0.4 : 1 }}
           >
             {submitting ? '처리 중...' : '매수'}
           </button>

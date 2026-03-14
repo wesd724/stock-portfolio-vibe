@@ -27,7 +27,7 @@ export const usePortfolio = create<PortfolioStore>((set, get) => ({
   holdings: [],
   isInitialized: false,
   currentUSDKRW: 1300,
-  displayCurrency: 'KRW',
+  displayCurrency: 'USD',
 
   init: async () => {
     const storage = getStorage()
