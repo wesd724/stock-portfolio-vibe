@@ -5,10 +5,9 @@ import { useTheme } from '../../context/ThemeContext'
 
 interface Props {
   isOpen: boolean
-  onToggle: () => void
 }
 
-export default function Sidebar({ isOpen, onToggle }: Props) {
+export default function Sidebar({ isOpen }: Props) {
   const { holdings, refreshCurrentPrices } = usePortfolio()
   const { theme } = useTheme()
 
@@ -18,35 +17,14 @@ export default function Sidebar({ isOpen, onToggle }: Props) {
       top: '60px',
       left: 0,
       bottom: 0,
-      width: isOpen ? '220px' : '40px',
+      width: isOpen ? '240px' : '0px',
       background: theme.bg.root,
-      borderRight: `1px solid ${theme.bg.card}`,
+      borderRight: isOpen ? `1px solid ${theme.bg.card}` : 'none',
       overflowY: isOpen ? 'auto' : 'hidden',
       overflowX: 'hidden',
       transition: 'width 0.2s ease',
       zIndex: 50,
     }}>
-      {/* 토글 버튼 */}
-      <button
-        onClick={onToggle}
-        title={isOpen ? '사이드바 닫기' : '사이드바 열기'}
-        style={{
-          position: 'absolute',
-          top: '10px',
-          right: '8px',
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          color: theme.text.muted,
-          fontSize: '14px',
-          padding: '2px 4px',
-          zIndex: 1,
-          lineHeight: 1,
-        }}
-      >
-        {isOpen ? '◀' : '▶'}
-      </button>
-
       {isOpen && (
         <>
           <UserInfo />

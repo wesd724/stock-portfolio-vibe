@@ -43,7 +43,7 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { addTransaction } = usePortfolio()
+  const { addTransaction, accountBalance } = usePortfolio()
   const { theme } = useTheme()
 
   const isKRW = currency === 'KRW'
@@ -147,7 +147,9 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
 
   const sharesNum = parseInput(sharesRaw)
   const amountNum = parseInput(amountRaw)
-  const isValid = priceInfo && sharesNum > 0 && amountNum > 0
+  const amountUSD = priceInfo ? (isKRW ? amountNum / priceInfo.exchangeRate : amountNum) : 0
+  const insufficientBalance = amountUSD > accountBalance
+  const isValid = priceInfo && sharesNum > 0 && amountNum > 0 && !insufficientBalance
 
   const inputStyle = {
     flex: 1, padding: '8px 12px', borderRadius: '8px',
@@ -161,7 +163,27 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
       style={{ position: 'fixed', inset: 0, background: theme.overlay, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
     >
       <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '460px' }}>
-        <h2 style={{ fontSize: '17px', fontWeight: 700, marginBottom: '4px', color: theme.text.primary }}>매수</h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px' }}>
+          <h2 style={{ fontSize: '17px', fontWeight: 700, color: theme.text.primary }}>매수</h2>
+          <div style={{ textAlign: 'right' }}>
+            {isKRW && priceInfo ? (
+              <>
+                <div style={{ fontSize: '12px', color: theme.text.muted }}>
+                  잔액 <span style={{ color: theme.text.primary, fontWeight: 600 }}>
+                    {formatKRW(accountBalance * priceInfo.exchangeRate)}
+                  </span>
+                </div>
+                <div style={{ fontSize: '11px', color: theme.text.muted }}>
+                  ({priceInfo.actualDate} 환율 {priceInfo.exchangeRate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원)
+                </div>
+              </>
+            ) : (
+              <div style={{ fontSize: '12px', color: theme.text.muted }}>
+                잔액 <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(accountBalance)}</span>
+              </div>
+            )}
+          </div>
+        </div>
         <p style={{ fontSize: '13px', color: theme.text.muted, marginBottom: '20px' }}>{symbol} · {name}</p>
 
         {/* 날짜 */}
@@ -197,6 +219,14 @@ export default function BuyModal({ symbol, name, onClose }: Props) {
         )}
 
         {error && <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
+        {insufficientBalance && amountNum > 0 && priceInfo && (
+          <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>
+            잔액 부족 — 필요{' '}
+            {isKRW ? formatKRW(amountUSD * priceInfo.exchangeRate) : formatUSD(amountUSD)}
+            {' '}/ 보유{' '}
+            {isKRW ? formatKRW(accountBalance * priceInfo.exchangeRate) : formatUSD(accountBalance)}
+          </p>
+        )}
 
         {/* 통화 토글 */}
         <div style={{ display: 'flex', gap: '6px', marginBottom: '12px' }}>
