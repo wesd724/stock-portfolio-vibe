@@ -3,6 +3,7 @@ import { Holding } from '../../types/portfolio'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
+import { usePortfolio } from '../../context/PortfolioContext'
 import SellModal from './SellModal'
 
 interface Props {
@@ -14,6 +15,12 @@ export default function HoldingItem({ holding }: Props) {
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
+  const { transactions } = usePortfolio()
+
+  const earliestBuyDate = transactions
+    .filter((t) => t.symbol === holding.symbol && t.type === 'BUY')
+    .map((t) => t.date)
+    .sort()[0] ?? '1980-01-01'
   const isPositive = holding.gainLoss >= 0
 
   async function handleClick() {
@@ -62,6 +69,7 @@ export default function HoldingItem({ holding }: Props) {
           symbol={holding.symbol}
           name={holding.name}
           maxShares={holding.totalShares}
+          minDate={earliestBuyDate}
           onClose={() => setShowSell(false)}
         />
       )}

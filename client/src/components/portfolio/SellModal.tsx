@@ -8,12 +8,13 @@ interface Props {
   symbol: string
   name: string
   maxShares: number
+  minDate: string
   onClose: () => void
 }
 
 const today = new Date().toISOString().split('T')[0]
 
-export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
+export default function SellModal({ symbol, name, maxShares, minDate, onClose }: Props) {
   const [date, setDate] = useState(today)
   const [shares, setShares] = useState('')
   const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string } | null>(null)
@@ -25,6 +26,10 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
 
   async function fetchPrice() {
     if (!date) return
+    if (date < minDate) {
+      setError(`매도 날짜는 최초 매수일(${minDate}) 이후여야 합니다.`)
+      return
+    }
     setLoadingPrice(true)
     setError(null)
     setPriceInfo(null)
@@ -64,7 +69,7 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
 
   const sharesNum = parseFloat(shares)
   const sellAmount = priceInfo && shares ? priceInfo.price * sharesNum : null
-  const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares + 1e-9
+  const isValid = priceInfo && shares && sharesNum > 0 && sharesNum <= maxShares + 1e-9 && date >= minDate
 
   return createPortal(
     <div
@@ -82,7 +87,7 @@ export default function SellModal({ symbol, name, maxShares, onClose }: Props) {
             type="date"
             value={date}
             max={today}
-            min="1980-01-01"
+            min={minDate}
             onChange={(e) => { setDate(e.target.value); setPriceInfo(null) }}
             style={{ flex: 1, padding: '8px 12px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.primary, fontSize: '14px', colorScheme: 'dark' }}
           />

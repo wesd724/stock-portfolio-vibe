@@ -21,6 +21,12 @@ export default function UserInfo() {
       <div style={{ fontSize: '12px', color: theme.text.muted, marginTop: '2px' }}>익명</div>
       <div style={{ marginTop: '16px', padding: '12px', background: theme.bg.card, borderRadius: '8px', fontSize: '13px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+          <span style={{ color: theme.text.muted }}>총 투자금</span>
+          <span style={{ color: theme.text.primary, fontWeight: 600 }}>
+            {hasData ? `$${summary.totalCost.toFixed(2)}` : '$0.00'}
+          </span>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
           <span style={{ color: theme.text.muted }}>평가금액</span>
           <span style={{ color: theme.text.primary, fontWeight: 600 }}>
             {hasData ? `$${summary.totalValue.toFixed(2)}` : '$0.00'}
