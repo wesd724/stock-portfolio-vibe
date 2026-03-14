@@ -14,6 +14,8 @@ const SOURCE_COLORS: Record<string, string> = {
   Reuters: '#f87171',
   CNBC: '#60a5fa',
   'Google News': '#34d399',
+  'AP News': '#fb923c',
+  MarketWatch: '#a78bfa',
 }
 
 function formatDate(dateStr: string) {
@@ -35,6 +37,8 @@ export default function GlobalNews() {
   const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<NewsItem | null>(null)
   const sentinelRef = useRef<HTMLDivElement>(null)
+  const allNewsRef = useRef<NewsItem[]>([])
+  allNewsRef.current = allNews
 
   function fetchNews(translate: boolean, isRefresh = false) {
     const url = translate ? '/api/news/global?translate=true' : '/api/news/global'
@@ -59,14 +63,14 @@ export default function GlobalNews() {
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, allNews.length))
+          setVisibleCount((prev) => Math.min(prev + PAGE_SIZE, allNewsRef.current.length))
         }
       },
       { threshold: 0.1 },
     )
     observer.observe(sentinel)
     return () => observer.disconnect()
-  }, [allNews.length])
+  }, [])
 
   async function toggleTranslate() {
     setTranslating(true)
@@ -132,47 +136,45 @@ export default function GlobalNews() {
         {loading ? (
           <p style={{ color: '#475569', fontSize: '14px' }}>불러오는 중...</p>
         ) : (
-          <>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
-              {visibleNews.map((item, i) => {
-                const color = SOURCE_COLORS[item.source] ?? '#64748b'
-                return (
-                  <li
-                    key={i}
-                    onClick={() => setSelected(item)}
-                    style={{
-                      padding: '12px 0',
-                      borderBottom: i < visibleNews.length - 1 ? '1px solid #334155' : 'none',
-                      cursor: 'pointer',
-                      display: 'flex', gap: '10px', alignItems: 'flex-start',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
-                    onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
-                  >
-                    <span style={{
-                      fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                      background: '#0f172a', color, border: `1px solid ${color}`,
-                      flexShrink: 0, marginTop: '2px',
-                    }}>{item.source}</span>
-                    <div>
-                      <div style={{ fontSize: '13px', color: '#f1f5f9', lineHeight: '1.5' }}>{item.title}</div>
-                      <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
-                        {item.publisher} · {formatDate(item.publishedAt)}
-                      </div>
+          <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+            {visibleNews.map((item, i) => {
+              const color = SOURCE_COLORS[item.source] ?? '#64748b'
+              return (
+                <li
+                  key={i}
+                  onClick={() => setSelected(item)}
+                  style={{
+                    padding: '12px 0',
+                    borderBottom: i < visibleNews.length - 1 ? '1px solid #334155' : 'none',
+                    cursor: 'pointer',
+                    display: 'flex', gap: '10px', alignItems: 'flex-start',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.opacity = '0.7')}
+                  onMouseLeave={(e) => (e.currentTarget.style.opacity = '1')}
+                >
+                  <span style={{
+                    fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
+                    background: '#0f172a', color, border: `1px solid ${color}`,
+                    flexShrink: 0, marginTop: '2px',
+                  }}>{item.source}</span>
+                  <div>
+                    <div style={{ fontSize: '13px', color: '#f1f5f9', lineHeight: '1.5' }}>{item.title}</div>
+                    <div style={{ fontSize: '11px', color: '#475569', marginTop: '3px' }}>
+                      {item.publisher} · {formatDate(item.publishedAt)}
                     </div>
-                  </li>
-                )
-              })}
-            </ul>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        )}
 
-            {/* 무한 스크롤 센티넬 */}
-            <div ref={sentinelRef} style={{ height: '1px' }} />
-            {hasMore && (
-              <div style={{ textAlign: 'center', padding: '12px 0', color: '#475569', fontSize: '13px' }}>
-                스크롤하여 더 보기
-              </div>
-            )}
-          </>
+        {/* 무한 스크롤 센티넬 - 항상 렌더링 */}
+        <div ref={sentinelRef} style={{ height: '1px' }} />
+        {!loading && hasMore && (
+          <div style={{ textAlign: 'center', padding: '12px 0', color: '#475569', fontSize: '13px' }}>
+            스크롤하여 더 보기
+          </div>
         )}
       </div>
 

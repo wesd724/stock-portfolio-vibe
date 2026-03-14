@@ -10,6 +10,9 @@ const FEEDS = [
     url: 'https://news.google.com/rss/topics/CAAqJggKIiBDQkFTRWdvSUwyMHZNRGx6TVdZU0FtVnVHZ0pWVXlnQVAB?hl=en-US&gl=US&ceid=US:en',
     source: 'Google News',
   },
+  { url: 'https://feeds.apnews.com/apnews/business', source: 'AP News' },
+  { url: 'https://feeds.marketwatch.com/marketwatch/topstories/', source: 'MarketWatch' },
+  { url: 'https://feeds.marketwatch.com/marketwatch/marketpulse/', source: 'MarketWatch' },
 ];
 
 const ITEMS_PER_FEED = 20;
