@@ -32,7 +32,7 @@ const QUOTE_TYPES: { label: string; value: QuoteType }[] = [
 ]
 
 const SORT_FIELDS: { label: string; value: SortField }[] = [
-  { label: '1일 수익률', value: 'changePercent' },
+  { label: '1일 등락률', value: 'changePercent' },
   { label: '1일 거래량', value: 'volume' },
   { label: '3개월 거래량', value: 'avgVolume3M' },
 ]
@@ -165,7 +165,7 @@ export default function ScreenerPage() {
           <span>종목</span>
           <span style={{ textAlign: 'right' }}>현재가</span>
           <span style={{ textAlign: 'right' }}>등락</span>
-          <span style={{ textAlign: 'right' }}>1일 수익률</span>
+          <span style={{ textAlign: 'right' }}>1일 등락률</span>
           <span style={{ textAlign: 'right' }}>1일 거래량</span>
           <span style={{ textAlign: 'right' }}>3개월</span>
         </div>

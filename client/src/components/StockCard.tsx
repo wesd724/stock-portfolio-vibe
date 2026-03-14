@@ -62,16 +62,31 @@ export default function StockCard({ quote }: Props) {
       {/* 헤더 */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '13px', color: theme.text.secondary }}>{quote.symbol}</span>
+          <span style={{ fontSize: '13px', color: theme.text.secondary }}>{quote.symbol}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
             <span style={{
-              fontSize: '11px',
-              padding: '2px 6px',
-              borderRadius: '4px',
-              background: theme.bg.input,
-              color: marketState.color,
+              fontSize: '13px', fontWeight: 600,
+              padding: '2px 7px', borderRadius: '4px',
+              background: theme.bg.input, color: marketState.color,
             }}>
               {marketState.label}
+            </span>
+            {quote.preMarketPrice != null && (
+              <span style={{
+                fontSize: '13px', fontWeight: 600,
+                padding: '2px 7px', borderRadius: '4px',
+                background: '#f59e0b22', color: '#f59e0b',
+              }}>프리장</span>
+            )}
+            {quote.postMarketPrice != null && (
+              <span style={{
+                fontSize: '13px', fontWeight: 600,
+                padding: '2px 7px', borderRadius: '4px',
+                background: '#818cf822', color: '#818cf8',
+              }}>애프터장</span>
+            )}
+            <span style={{ fontSize: '13px', fontWeight: 600, color: isPositive ? theme.up : theme.down }}>
+              {formatChange(quote.change, quote.changePercent)}
             </span>
           </div>
           <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
@@ -103,8 +118,12 @@ export default function StockCard({ quote }: Props) {
               ↻
             </button>
           </div>
-          <div style={{ fontSize: '15px', marginTop: '2px' }}>
-            <span style={{ fontSize: '11px', color: theme.text.muted, marginRight: '6px' }}>본장</span>
+          <div style={{ fontSize: '15px', marginTop: '10px' }}>
+            <span style={{
+              fontSize: '13px', fontWeight: 600, marginRight: '6px',
+              padding: '1px 5px', borderRadius: '4px',
+              background: '#16a34a22', color: '#22c55e',
+            }}>본장</span>
             <span style={{ color: isPositive ? theme.up : theme.down }}>
               {formatChange(quote.change, quote.changePercent)}
             </span>
@@ -117,7 +136,11 @@ export default function StockCard({ quote }: Props) {
         <div style={{ marginTop: '8px', display: 'flex', gap: '16px', fontSize: '13px', flexWrap: 'wrap' }}>
           {quote.preMarketPrice != null && (
             <span>
-              <span style={{ color: theme.text.muted }}>프리장 </span>
+              <span style={{
+                fontSize: '13px', fontWeight: 600, marginRight: '6px',
+                padding: '1px 5px', borderRadius: '4px',
+                background: '#f59e0b22', color: '#f59e0b',
+              }}>프리장</span>
               <span style={{ color: theme.text.primary }}>{quote.currency} {quote.preMarketPrice.toFixed(2)}</span>
               {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
@@ -126,7 +149,11 @@ export default function StockCard({ quote }: Props) {
           )}
           {quote.postMarketPrice != null && (
             <span>
-              <span style={{ color: theme.text.muted }}>애프터장 </span>
+              <span style={{
+                fontSize: '13px', fontWeight: 600, marginRight: '6px',
+                padding: '1px 5px', borderRadius: '4px',
+                background: '#818cf822', color: '#818cf8',
+              }}>애프터장</span>
               <span style={{ color: theme.text.primary }}>{quote.currency} {quote.postMarketPrice.toFixed(2)}</span>
               {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
                 {formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
