@@ -41,6 +41,15 @@ export class StocksController {
     return this.stocksService.search(query);
   }
 
+  @Get('screener')
+  getScreener(
+    @Query('type') type: string = 'ALL',
+    @Query('sort') sort: string = 'volume',
+    @Query('order') order: string = 'desc',
+  ) {
+    return this.stocksService.getScreener(type, sort, order);
+  }
+
   @Get('forex/rate')
   getForexRate(@Query('date') date: string) {
     return this.stocksService.getForexRate(date);

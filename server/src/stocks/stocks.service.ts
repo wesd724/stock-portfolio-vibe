@@ -143,6 +143,52 @@ export class StocksService {
     };
   }
 
+  async getScreener(quoteType: string, sort: string, order: string) {
+    const sortFieldMap: Record<string, string> = {
+      changePercent: 'percentchange',
+      volume: 'dayvolume',
+      avgVolume3M: 'avgdailyvol3m',
+    };
+    const sortField = sortFieldMap[sort] ?? 'dayvolume';
+
+    const operands: any[] = [{ operator: 'eq', operands: ['region', 'us'] }];
+    if (quoteType !== 'ALL') {
+      operands.push({ operator: 'eq', operands: ['quoteType', quoteType] });
+    }
+
+    const toRow = (q: any) => ({
+      symbol: q.symbol,
+      name: q.shortName ?? q.longName ?? q.symbol,
+      price: q.regularMarketPrice ?? 0,
+      change: q.regularMarketChange ?? 0,
+      changePercent: q.regularMarketChangePercent ?? 0,
+      volume: q.regularMarketVolume ?? 0,
+      avgVolume3M: q.averageDailyVolume3Month ?? 0,
+      quoteType: q.quoteType ?? 'EQUITY',
+    });
+
+    try {
+      const result = await (yf as any).screener({
+        query: { operator: 'and', operands },
+        sortField,
+        sortType: order.toUpperCase(),
+        offset: 0,
+        count: 100,
+      });
+      return result.quotes.map(toRow);
+    } catch {
+      const result = await (yf as any).screener({ scrIds: 'most_actives', count: 100 });
+      const rows: any[] = result.quotes
+        .filter((q: any) => quoteType === 'ALL' || q.quoteType === quoteType)
+        .map(toRow);
+      rows.sort((a: any, b: any) => {
+        const key = sort === 'changePercent' ? 'changePercent' : sort === 'volume' ? 'volume' : 'avgVolume3M';
+        return order === 'desc' ? b[key] - a[key] : a[key] - b[key];
+      });
+      return rows;
+    }
+  }
+
   async search(query: string) {
     const result = await yf.search(query);
     return result.quotes

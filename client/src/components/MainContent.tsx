@@ -8,6 +8,7 @@ import GlobalNews from './news/GlobalNews'
 import PortfolioPage from './portfolio/PortfolioPage'
 import TransactionHistoryPage from './portfolio/TransactionHistoryPage'
 import ComparisonPage from './comparison/ComparisonPage'
+import ScreenerPage from './screener/ScreenerPage'
 
 export default function MainContent() {
   const { selectedQuote } = useStock()
@@ -16,6 +17,7 @@ export default function MainContent() {
   if (currentPage === 'portfolio') return <PortfolioPage />
   if (currentPage === 'transactions') return <TransactionHistoryPage />
   if (currentPage === 'compare') return <ComparisonPage />
+  if (currentPage === 'screener') return <ScreenerPage />
 
   return (
     <div>
