@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 import { StockQuote } from '../../types/stock'
 import {
   LineChart, Line, XAxis, YAxis, Tooltip,
@@ -137,6 +138,7 @@ export default function ComparisonPage() {
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
   const [symbols, setSymbols] = useState<SymbolEntry[]>([])
   const [interval, setIntervalVal] = useState<CompareInterval>('1d')
   const [dateRange, setDateRange] = useState(getDefaultRange('1d'))
@@ -303,8 +305,8 @@ export default function ComparisonPage() {
 
       {/* 차트 */}
       <div style={{ background: theme.bg.card, borderRadius: '12px', padding: '20px 24px', border: `1px solid ${theme.border}` }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', gap: '6px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: isMobile ? 'flex-start' : 'center', marginBottom: '16px', flexDirection: isMobile ? 'column' : 'row', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {INTERVALS.map((item) => (
               <button key={item.value} onClick={() => handleIntervalChange(item.value)} style={{
                 padding: '4px 12px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontSize: '13px',
@@ -314,7 +316,7 @@ export default function ComparisonPage() {
               }}>{item.label}</button>
             ))}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <input type="date" value={pendingRange.from} max={pendingRange.to} onChange={(e) => setPendingRange((p) => ({ ...p, from: e.target.value }))} style={inputStyle} />
             <span style={{ color: theme.text.muted, fontSize: '13px' }}>~</span>
             <input type="date" value={pendingRange.to} min={pendingRange.from} max={toDateStr(new Date())} onChange={(e) => setPendingRange((p) => ({ ...p, to: e.target.value }))} style={inputStyle} />

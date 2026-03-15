@@ -3,6 +3,7 @@ import { usePortfolio } from '../../context/PortfolioContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 function formatKRW(amount: number): string {
   return '₩' + Math.round(amount).toLocaleString('ko-KR')
@@ -17,10 +18,10 @@ export default function PortfolioPage() {
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   const isKRW = displayCurrency === 'KRW'
 
-  // Compute summary from holdings directly
   const totalCost = holdings.reduce((s, h) => s + h.totalCost, 0)
   const totalValue = holdings.reduce((s, h) => s + h.currentValue, 0)
   const gainLoss = totalValue - totalCost
@@ -94,72 +95,74 @@ export default function PortfolioPage() {
       </div>
 
       {/* 요약 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px', marginBottom: '24px' }}>
         {summaryCards.map(({ label, value, color }) => (
           <div key={label} style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '16px' }}>
             <div style={{ fontSize: '12px', color: theme.text.muted, marginBottom: '6px' }}>{label}</div>
-            <div style={{ fontSize: '18px', fontWeight: 700, color: color ?? theme.text.primary }}>{value}</div>
+            <div style={{ fontSize: isMobile ? '15px' : '18px', fontWeight: 700, color: color ?? theme.text.primary }}>{value}</div>
           </div>
         ))}
       </div>
 
       {/* 보유 종목 테이블 */}
       <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-          <thead>
-            <tr style={{ background: theme.bg.input, color: theme.text.muted }}>
-              {tableHeaders.map((h) => (
-                <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            {holdings.map((h) => {
-              const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
-              const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
-              const pos = gainLossVal >= 0
-              const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
-              const gainLossDisplay = isKRW
-                ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
-                : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: isKRW ? '800px' : '560px', borderCollapse: 'collapse', fontSize: '13px' }}>
+            <thead>
+              <tr style={{ background: theme.bg.input, color: theme.text.muted }}>
+                {tableHeaders.map((h) => (
+                  <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {holdings.map((h) => {
+                const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
+                const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
+                const pos = gainLossVal >= 0
+                const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
+                const gainLossDisplay = isKRW
+                  ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
+                  : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
 
-              return (
-                <tr
-                  key={h.symbol}
-                  onClick={() => handleRowClick(h.symbol)}
-                  style={{ borderTop: `1px solid ${theme.border}`, cursor: 'pointer' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                    <div style={{ fontWeight: 700, color: theme.text.primary }}>{h.symbol}</div>
-                    <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toFixed(2)}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
-                    {gainLossDisplay}
-                  </td>
-                  <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
-                    {pos ? '+' : ''}{gainLossPercentVal.toFixed(2)}%
-                  </td>
-                  {isKRW && (
-                    <>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>
-                        {h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}
-                      </td>
-                      <td style={{ padding: '12px 16px', textAlign: 'right', color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>
-                        {h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}
-                      </td>
-                    </>
-                  )}
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                return (
+                  <tr
+                    key={h.symbol}
+                    onClick={() => handleRowClick(h.symbol)}
+                    style={{ borderTop: `1px solid ${theme.border}`, cursor: 'pointer' }}
+                    onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                  >
+                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, color: theme.text.primary }}>{h.symbol}</div>
+                      <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
+                      {gainLossDisplay}
+                    </td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
+                      {pos ? '+' : ''}{gainLossPercentVal.toFixed(2)}%
+                    </td>
+                    {isKRW && (
+                      <>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>
+                          {h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'right', color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>
+                          {h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}
+                        </td>
+                      </>
+                    )}
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   )

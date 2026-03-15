@@ -37,6 +37,9 @@ const SORT_FIELDS: { label: string; value: SortField }[] = [
   { label: '3개월 거래량', value: 'avgVolume3M' },
 ]
 
+const GRID_COLS = '2fr 1fr 1fr 1fr 1fr 60px'
+const TABLE_MIN_WIDTH = '520px'
+
 export default function ScreenerPage() {
   const { theme } = useTheme()
   const { setSelectedQuote } = useStock()
@@ -81,7 +84,7 @@ export default function ScreenerPage() {
   }
 
   const btnBase = {
-    padding: '5px 14px', borderRadius: '6px', border: `1px solid ${theme.border}`,
+    padding: '5px 12px', borderRadius: '6px', border: `1px solid ${theme.border}`,
     cursor: 'pointer', fontSize: '13px', fontWeight: 500,
   }
 
@@ -103,7 +106,7 @@ export default function ScreenerPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
         <h2 style={{ fontSize: '16px', fontWeight: 600, color: theme.text.primary }}>종목 목록</h2>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {!loading && !error && (
             <span style={{ fontSize: '12px', color: theme.text.muted }}>
               총 {items.length}개 · 본장 기준 · 15분 지연
@@ -122,7 +125,6 @@ export default function ScreenerPage() {
 
       {/* 필터 바 */}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px', alignItems: 'center' }}>
-        {/* 종류 */}
         <div style={{ display: 'flex', gap: '4px' }}>
           {QUOTE_TYPES.map(({ label, value }) => (
             <button key={value} onClick={() => handleFilter(value, sortField, order)}
@@ -133,7 +135,6 @@ export default function ScreenerPage() {
 
         <span style={{ color: theme.border }}>|</span>
 
-        {/* 정렬 기준 */}
         <div style={{ display: 'flex', gap: '4px' }}>
           {SORT_FIELDS.map(({ label, value }) => (
             <button key={value} onClick={() => handleFilter(quoteType, value, order)}
@@ -144,7 +145,6 @@ export default function ScreenerPage() {
 
         <span style={{ color: theme.border }}>|</span>
 
-        {/* 오름/내림차순 */}
         <div style={{ display: 'flex', gap: '4px' }}>
           {([['내림차순', 'desc'], ['오름차순', 'asc']] as const).map(([label, value]) => (
             <button key={value} onClick={() => handleFilter(quoteType, sortField, value)}
@@ -156,68 +156,71 @@ export default function ScreenerPage() {
 
       {/* 테이블 */}
       <div style={{ background: theme.bg.card, borderRadius: '12px', border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
-        {/* 헤더 */}
-        <div style={{
-          display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 60px',
-          padding: '10px 16px', borderBottom: `1px solid ${theme.border}`,
-          fontSize: '12px', color: theme.text.muted, fontWeight: 600,
-        }}>
-          <span>종목</span>
-          <span style={{ textAlign: 'right' }}>현재가</span>
-          <span style={{ textAlign: 'right' }}>등락</span>
-          <span style={{ textAlign: 'right' }}>1일 등락률</span>
-          <span style={{ textAlign: 'right' }}>1일 거래량</span>
-          <span style={{ textAlign: 'right' }}>3개월</span>
-        </div>
+        <div style={{ overflowX: 'auto' }}>
+          {/* 헤더 */}
+          <div style={{
+            display: 'grid', gridTemplateColumns: GRID_COLS,
+            minWidth: TABLE_MIN_WIDTH,
+            padding: '10px 16px', borderBottom: `1px solid ${theme.border}`,
+            fontSize: '12px', color: theme.text.muted, fontWeight: 600,
+          }}>
+            <span>종목</span>
+            <span style={{ textAlign: 'right' }}>현재가</span>
+            <span style={{ textAlign: 'right' }}>등락</span>
+            <span style={{ textAlign: 'right' }}>1일 등락률</span>
+            <span style={{ textAlign: 'right' }}>1일 거래량</span>
+            <span style={{ textAlign: 'right' }}>3개월</span>
+          </div>
 
-        {loading ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
-            불러오는 중...
-          </div>
-        ) : error ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: theme.down, fontSize: '14px' }}>
-            {error}
-          </div>
-        ) : (
-          items.map((item, i) => {
-            const isPos = item.changePercent >= 0
-            const color = isPos ? theme.up : theme.down
-            return (
-              <div
-                key={item.symbol}
-                onClick={() => handleRowClick(item.symbol)}
-                style={{
-                  display: 'grid', gridTemplateColumns: '2fr 1fr 1fr 1fr 1fr 60px',
-                  padding: '10px 16px',
-                  borderBottom: i < items.length - 1 ? `1px solid ${theme.border}` : 'none',
-                  cursor: 'pointer', fontSize: '13px',
-                }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-              >
-                <div>
-                  <span style={{ fontWeight: 700, color: theme.text.primary }}>{item.symbol}</span>
-                  <span style={{ marginLeft: '8px', fontSize: '12px', color: theme.text.muted }}>{item.name}</span>
+          {loading ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
+              불러오는 중...
+            </div>
+          ) : error ? (
+            <div style={{ padding: '40px', textAlign: 'center', color: theme.down, fontSize: '14px' }}>
+              {error}
+            </div>
+          ) : (
+            items.map((item, i) => {
+              const isPos = item.changePercent >= 0
+              const color = isPos ? theme.up : theme.down
+              return (
+                <div
+                  key={item.symbol}
+                  onClick={() => handleRowClick(item.symbol)}
+                  style={{
+                    display: 'grid', gridTemplateColumns: GRID_COLS,
+                    minWidth: TABLE_MIN_WIDTH,
+                    padding: '10px 16px',
+                    borderBottom: i < items.length - 1 ? `1px solid ${theme.border}` : 'none',
+                    cursor: 'pointer', fontSize: '13px',
+                  }}
+                  onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <div style={{ overflow: 'hidden' }}>
+                    <span style={{ fontWeight: 700, color: theme.text.primary }}>{item.symbol}</span>
+                    <span style={{ marginLeft: '8px', fontSize: '12px', color: theme.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
+                  </div>
+                  <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toFixed(2)}</span>
+                  <span style={{ textAlign: 'right', color }}>
+                    {isPos ? '+' : ''}{item.change.toFixed(2)}
+                  </span>
+                  <span style={{ textAlign: 'right', color, fontWeight: 600 }}>
+                    {isPos ? '+' : ''}{item.changePercent.toFixed(2)}%
+                  </span>
+                  <span style={{ textAlign: 'right', color: theme.text.secondary }}>
+                    {formatVolume(item.volume)}
+                  </span>
+                  <span style={{ textAlign: 'right', color: theme.text.muted }}>
+                    {item.avgVolume3M ? formatVolume(item.avgVolume3M) : '-'}
+                  </span>
                 </div>
-                <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toFixed(2)}</span>
-                <span style={{ textAlign: 'right', color }}>
-                  {isPos ? '+' : ''}{item.change.toFixed(2)}
-                </span>
-                <span style={{ textAlign: 'right', color, fontWeight: 600 }}>
-                  {isPos ? '+' : ''}{item.changePercent.toFixed(2)}%
-                </span>
-                <span style={{ textAlign: 'right', color: theme.text.secondary }}>
-                  {formatVolume(item.volume)}
-                </span>
-                <span style={{ textAlign: 'right', color: theme.text.muted }}>
-                  {item.avgVolume3M ? formatVolume(item.avgVolume3M) : '-'}
-                </span>
-              </div>
-            )
-          })
-        )}
+              )
+            })
+          )}
+        </div>
       </div>
-
     </div>
   )
 }

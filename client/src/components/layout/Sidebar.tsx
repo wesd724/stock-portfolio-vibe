@@ -5,9 +5,10 @@ import { useTheme } from '../../context/ThemeContext'
 
 interface Props {
   isOpen: boolean
+  isMobile?: boolean
 }
 
-export default function Sidebar({ isOpen }: Props) {
+export default function Sidebar({ isOpen, isMobile = false }: Props) {
   const { holdings, refreshCurrentPrices } = usePortfolio()
   const { theme } = useTheme()
 
@@ -23,7 +24,7 @@ export default function Sidebar({ isOpen }: Props) {
       overflowY: isOpen ? 'auto' : 'hidden',
       overflowX: 'hidden',
       transition: 'width 0.2s ease',
-      zIndex: 50,
+      zIndex: isMobile ? 150 : 50,
     }}>
       {isOpen && (
         <>

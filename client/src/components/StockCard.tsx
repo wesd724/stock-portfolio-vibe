@@ -4,6 +4,7 @@ import { useStock } from '../context/StockContext'
 import { useTheme } from '../context/ThemeContext'
 import { useFavorites } from '../context/FavoritesContext'
 import { usePortfolio } from '../context/PortfolioContext'
+import { useWindowSize } from '../hooks/useWindowSize'
 import BuyModal from './portfolio/BuyModal'
 
 interface Props {
@@ -59,6 +60,7 @@ export default function StockCard({ quote }: Props) {
   const { theme } = useTheme()
   const { toggle, isFavorite } = useFavorites()
   const { currentUSDKRW } = usePortfolio()
+  const { isMobile } = useWindowSize()
   const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState)
   const favorited = isFavorite(quote.symbol)
@@ -83,11 +85,17 @@ export default function StockCard({ quote }: Props) {
     <div style={{
       background: theme.bg.card,
       borderRadius: '12px',
-      padding: '20px 24px',
+      padding: isMobile ? '16px' : '20px 24px',
       border: `1px solid ${theme.border}`,
     }}>
       {/* 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        flexDirection: isMobile ? 'column' : 'row',
+        gap: isMobile ? '12px' : 0,
+      }}>
         <div>
           <span style={{ fontSize: '13px', color: theme.text.secondary }}>{quote.symbol}</span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
@@ -118,10 +126,14 @@ export default function StockCard({ quote }: Props) {
                 : formatChange(quote.change, quote.changePercent)}
             </span>
           </div>
-          <h2 style={{ fontSize: '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
         </div>
-        <div style={{ textAlign: 'right' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'flex-end' }}>
+        <div style={{ textAlign: isMobile ? 'left' : 'right', width: isMobile ? '100%' : 'auto' }}>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: '8px',
+            justifyContent: isMobile ? 'flex-start' : 'flex-end',
+            flexWrap: 'wrap',
+          }}>
             {/* USD/KRW 토글 */}
             <div style={{ display: 'flex', gap: '3px' }}>
               {(['USD', 'KRW'] as const).map((c) => (
@@ -137,7 +149,7 @@ export default function StockCard({ quote }: Props) {
                 >{c}</button>
               ))}
             </div>
-            <div style={{ fontSize: '28px', fontWeight: 700, color: theme.text.primary }}>
+            <div style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: theme.text.primary }}>
               {px(quote.price)}
             </div>
             <button
@@ -220,7 +232,7 @@ export default function StockCard({ quote }: Props) {
 
       {/* 당일 정보 */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+        display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px',
         marginTop: '16px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[
@@ -238,7 +250,7 @@ export default function StockCard({ quote }: Props) {
 
       {/* 추가 지표 */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px',
+        display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: '12px',
         marginTop: '8px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[

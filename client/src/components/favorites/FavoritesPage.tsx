@@ -17,6 +17,9 @@ function marketStateLabel(state: string) {
   return map[state] ?? { label: state, color: '#64748b' }
 }
 
+const GRID_COLS = '80px 1fr 120px 160px 100px 40px'
+const GRID_MIN_WIDTH = '540px'
+
 export default function FavoritesPage() {
   const { symbols, toggle } = useFavorites()
   const { setSelectedQuote } = useStock()
@@ -82,11 +85,12 @@ export default function FavoritesPage() {
           불러오는 중...
         </div>
       ) : (
-        <div>
+        <div style={{ overflowX: 'auto' }}>
           {/* 헤더 행 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '80px 1fr 120px 160px 100px 40px',
+            gridTemplateColumns: GRID_COLS,
+            minWidth: GRID_MIN_WIDTH,
             padding: '8px 20px',
             fontSize: '11px',
             color: theme.text.muted,
@@ -105,7 +109,8 @@ export default function FavoritesPage() {
             if (!q) return (
               <div key={sym} style={{
                 display: 'grid',
-                gridTemplateColumns: '80px 1fr 120px 160px 100px 40px',
+                gridTemplateColumns: GRID_COLS,
+                minWidth: GRID_MIN_WIDTH,
                 padding: '14px 20px',
                 fontSize: '13px',
                 color: theme.text.muted,
@@ -131,7 +136,8 @@ export default function FavoritesPage() {
                 onClick={() => handleRowClick(q)}
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: '80px 1fr 120px 160px 100px 40px',
+                  gridTemplateColumns: GRID_COLS,
+                  minWidth: GRID_MIN_WIDTH,
                   padding: '14px 20px',
                   fontSize: '13px',
                   borderBottom: `1px solid ${theme.border}`,

@@ -1,4 +1,5 @@
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 interface Item {
   label: string
@@ -125,6 +126,7 @@ const SECTIONS: Section[] = [
 
 export default function HelpPage() {
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   return (
     <div>
@@ -142,7 +144,8 @@ export default function HelpPage() {
             <div style={{
               padding: '14px 24px', borderBottom: `1px solid ${theme.border}`,
               background: theme.bg.input,
-              display: 'flex', alignItems: 'baseline', gap: '12px',
+              display: 'flex', alignItems: isMobile ? 'flex-start' : 'baseline',
+              flexDirection: isMobile ? 'column' : 'row', gap: isMobile ? '4px' : '12px',
             }}>
               <span style={{ fontSize: '14px', fontWeight: 700, color: theme.accent }}>{section.title}</span>
               {section.intro && (
@@ -154,8 +157,8 @@ export default function HelpPage() {
             <div>
               {section.items.map((item, i) => (
                 <div key={item.label} style={{
-                  display: 'grid', gridTemplateColumns: '160px 1fr',
-                  padding: '14px 24px', gap: '24px', alignItems: 'flex-start',
+                  display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '160px 1fr',
+                  padding: isMobile ? '12px 16px' : '14px 24px', gap: isMobile ? '6px' : '24px', alignItems: 'flex-start',
                   borderBottom: i < section.items.length - 1 ? `1px solid ${theme.border}` : 'none',
                 }}>
                   <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text.primary, paddingTop: '1px' }}>

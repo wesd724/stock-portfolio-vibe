@@ -4,7 +4,11 @@ import { useStock } from '../context/StockContext'
 import { useNavigation } from '../context/NavigationContext'
 import { useTheme } from '../context/ThemeContext'
 
-export default function StockSearch() {
+interface Props {
+  onSelect?: () => void
+}
+
+export default function StockSearch({ onSelect }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<StockSearchResult[]>([])
   const [showDropdown, setShowDropdown] = useState(false)
@@ -51,6 +55,7 @@ export default function StockSearch() {
       const data: StockQuote = await res.json()
       setSelectedQuote(data)
       setPage('home')
+      onSelect?.()
     } catch {
       // 에러 무시
     }

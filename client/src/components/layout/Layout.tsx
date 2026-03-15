@@ -2,6 +2,7 @@ import { ReactNode, useState } from 'react'
 import Navbar from './Navbar'
 import Sidebar from './Sidebar'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 interface Props {
   children: ReactNode
@@ -11,13 +12,24 @@ const SIDEBAR_WIDTH = 240
 const COLLAPSED_WIDTH = 0
 
 export default function Layout({ children }: Props) {
-  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const { isMobile } = useWindowSize()
+  const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
   const { theme } = useTheme()
 
   return (
     <>
       <Navbar />
-      <Sidebar isOpen={sidebarOpen} />
+      {/* Mobile sidebar backdrop */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          style={{
+            position: 'fixed', inset: 0, top: '60px',
+            background: 'rgba(0,0,0,0.5)', zIndex: 145,
+          }}
+        />
+      )}
+      <Sidebar isOpen={sidebarOpen} isMobile={isMobile} />
       {/* 토글 버튼 — 경계선 바깥에 위치 */}
       <button
         onClick={() => setSidebarOpen((v) => !v)}
@@ -48,8 +60,8 @@ export default function Layout({ children }: Props) {
       </button>
       <main style={{
         marginTop: '60px',
-        marginLeft: sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`,
-        padding: '32px',
+        marginLeft: isMobile ? 0 : (sidebarOpen ? `${SIDEBAR_WIDTH}px` : `${COLLAPSED_WIDTH}px`),
+        padding: isMobile ? '16px' : '32px',
         minHeight: 'calc(100vh - 60px)',
         transition: 'margin-left 0.2s ease',
       }}>
