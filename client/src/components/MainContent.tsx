@@ -11,6 +11,7 @@ import ComparisonPage from './comparison/ComparisonPage'
 import ScreenerPage from './screener/ScreenerPage'
 import FavoritesPage from './favorites/FavoritesPage'
 import HelpPage from './help/HelpPage'
+import InvestmentPage from './investment/InvestmentPage'
 
 export default function MainContent() {
   const { selectedQuote } = useStock()
@@ -22,6 +23,7 @@ export default function MainContent() {
   if (currentPage === 'screener') return <ScreenerPage />
   if (currentPage === 'favorites') return <FavoritesPage />
   if (currentPage === 'help') return <HelpPage />
+  if (currentPage === 'investment') return <InvestmentPage />
 
   return (
     <div>

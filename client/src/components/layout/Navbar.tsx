@@ -12,6 +12,7 @@ const TABS: { label: string; page: Page }[] = [
   { label: '포트폴리오', page: 'portfolio' },
   { label: '거래내역', page: 'transactions' },
   { label: '즐겨찾기', page: 'favorites' },
+  { label: '투자 방식', page: 'investment' },
   { label: '도움말', page: 'help' },
 ]
 
