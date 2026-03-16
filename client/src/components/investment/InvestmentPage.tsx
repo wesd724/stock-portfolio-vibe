@@ -126,6 +126,13 @@ function computeBuyHold(
   return result
 }
 
+function fmtInput(value: string): string {
+  const clean = value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1')
+  const parts = clean.split('.')
+  parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+  return parts.length > 1 ? parts.join('.') : parts[0]
+}
+
 function fmtMoney(n: number, currency: Currency, rate: number) {
   if (currency === 'KRW') {
     return '₩' + Math.round(n * rate).toLocaleString('ko-KR')
@@ -394,7 +401,7 @@ export default function InvestmentPage() {
               <input
                 type="text" inputMode="decimal"
                 value={dcaAmount}
-                onChange={(e) => setDcaAmount(e.target.value)}
+                onChange={(e) => setDcaAmount(fmtInput(e.target.value))}
                 placeholder={currency === 'KRW' ? '150,000' : '100'}
                 style={inputStyle}
               />
@@ -418,7 +425,7 @@ export default function InvestmentPage() {
               <input
                 type="text" inputMode="decimal"
                 value={bhAmount}
-                onChange={(e) => setBhAmount(e.target.value)}
+                onChange={(e) => setBhAmount(fmtInput(e.target.value))}
                 placeholder={currency === 'KRW' ? '13,000,000' : '10000'}
                 style={inputStyle}
               />
