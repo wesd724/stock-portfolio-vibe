@@ -40,14 +40,20 @@ function formatChangeKRW(changeUSD: number | undefined, percent: number | undefi
   return `${sign}₩${Math.round(changeKRW).toLocaleString('ko-KR')} (${sign}${percent.toFixed(2)}%)`
 }
 
-function marketStateLabel(state: string) {
+function marketStateLabel(state: string, regularMarketTime?: number | null) {
+  if (state === 'CLOSED') {
+    const isToday = regularMarketTime != null &&
+      new Date(regularMarketTime).toDateString() === new Date().toDateString()
+    return isToday
+      ? { label: '장마감', color: '#64748b' }
+      : { label: '휴장', color: '#64748b' }
+  }
   const map: Record<string, { label: string; color: string }> = {
-    REGULAR: { label: '본장', color: '#22c55e' },
-    PRE: { label: '프리장', color: '#f59e0b' },
-    PREPRE: { label: '프리장', color: '#f59e0b' },
-    POST: { label: '애프터장', color: '#818cf8' },
+    REGULAR:  { label: '본장',    color: '#22c55e' },
+    PRE:      { label: '프리장',  color: '#f59e0b' },
+    PREPRE:   { label: '프리장',  color: '#f59e0b' },
+    POST:     { label: '애프터장', color: '#818cf8' },
     POSTPOST: { label: '애프터장', color: '#818cf8' },
-    CLOSED: { label: '장마감', color: '#64748b' },
   }
   return map[state] ?? { label: state, color: '#64748b' }
 }
@@ -62,7 +68,7 @@ export default function StockCard({ quote }: Props) {
   const { currentUSDKRW } = usePortfolio()
   const { isMobile } = useWindowSize()
   const isPositive = quote.change >= 0
-  const marketState = marketStateLabel(quote.marketState)
+  const marketState = marketStateLabel(quote.marketState, quote.regularMarketTime)
   const favorited = isFavorite(quote.symbol)
   const isKRW = viewCurrency === 'KRW'
   const rate = currentUSDKRW
@@ -106,25 +112,21 @@ export default function StockCard({ quote }: Props) {
             }}>
               {marketState.label}
             </span>
-            {quote.preMarketPrice != null && (
-              <span style={{
-                fontSize: '13px', fontWeight: 600,
-                padding: '2px 7px', borderRadius: '4px',
-                background: '#f59e0b22', color: '#f59e0b',
-              }}>프리장</span>
-            )}
-            {quote.postMarketPrice != null && (
-              <span style={{
-                fontSize: '13px', fontWeight: 600,
-                padding: '2px 7px', borderRadius: '4px',
-                background: '#818cf822', color: '#818cf8',
-              }}>애프터장</span>
-            )}
-            <span style={{ fontSize: '13px', fontWeight: 600, color: isPositive ? theme.up : theme.down }}>
-              {isKRW
-                ? formatChangeKRW(quote.change, quote.changePercent, rate)
-                : formatChange(quote.change, quote.changePercent)}
-            </span>
+            {(() => {
+              const isPre  = quote.marketState === 'PRE'  || quote.marketState === 'PREPRE'
+              const isPost = quote.marketState === 'POST' || quote.marketState === 'POSTPOST'
+              const change  = isPre ? quote.preMarketChange  : isPost ? quote.postMarketChange  : quote.change
+              const pct     = isPre ? quote.preMarketChangePercent : isPost ? quote.postMarketChangePercent : quote.changePercent
+              const pos     = (change ?? 0) >= 0
+              if (change == null && pct == null) return null
+              return (
+                <span style={{ fontSize: '13px', fontWeight: 600, color: pos ? theme.up : theme.down }}>
+                  {isKRW
+                    ? formatChangeKRW(change, pct, rate)
+                    : formatChange(change, pct)}
+                </span>
+              )
+            })()}
           </div>
           <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
         </div>
@@ -149,8 +151,14 @@ export default function StockCard({ quote }: Props) {
                 >{c}</button>
               ))}
             </div>
+            {/* 현재 장 기준 가격 */}
             <div style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: theme.text.primary }}>
-              {px(quote.price)}
+              {(() => {
+                const isPre  = quote.marketState === 'PRE'  || quote.marketState === 'PREPRE'
+                const isPost = quote.marketState === 'POST' || quote.marketState === 'POSTPOST'
+                const currentPrice = isPre ? quote.preMarketPrice : isPost ? quote.postMarketPrice : quote.price
+                return px(currentPrice)
+              })()}
             </div>
             <button
               onClick={() => setShowBuy(true)}
@@ -174,61 +182,21 @@ export default function StockCard({ quote }: Props) {
               ↻
             </button>
           </div>
-          <div style={{ fontSize: '15px', marginTop: '10px' }}>
-            <span style={{
-              fontSize: '13px', fontWeight: 600, marginRight: '6px',
-              padding: '1px 5px', borderRadius: '4px',
-              background: '#16a34a22', color: '#22c55e',
-            }}>본장</span>
-            <span style={{ color: isPositive ? theme.up : theme.down }}>
-              {isKRW
-                ? formatChangeKRW(quote.change, quote.changePercent, rate)
-                : formatChange(quote.change, quote.changePercent)}
-            </span>
-          </div>
+          {/* 프리/애프터장일 때 본장 종가 명시 */}
+          {(quote.marketState === 'PRE' || quote.marketState === 'PREPRE' ||
+            quote.marketState === 'POST' || quote.marketState === 'POSTPOST') && (
+            <div style={{ fontSize: '12px', color: theme.text.muted, marginTop: '4px', textAlign: isMobile ? 'left' : 'right' }}>
+              본장 종가 {px(quote.price)}
+            </div>
+          )}
           {isKRW && (
-            <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '4px' }}>
+            <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '2px', textAlign: isMobile ? 'left' : 'right' }}>
               적용 환율 {rate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원/달러
             </div>
           )}
         </div>
       </div>
 
-      {/* 프리/애프터장 */}
-      {(quote.preMarketPrice || quote.postMarketPrice) && (
-        <div style={{ marginTop: '8px', display: 'flex', gap: '16px', fontSize: '13px', flexWrap: 'wrap' }}>
-          {quote.preMarketPrice != null && (
-            <span>
-              <span style={{
-                fontSize: '13px', fontWeight: 600, marginRight: '6px',
-                padding: '1px 5px', borderRadius: '4px',
-                background: '#f59e0b22', color: '#f59e0b',
-              }}>프리장</span>
-              <span style={{ color: theme.text.primary }}>{px(quote.preMarketPrice)}</span>
-              {' '}<span style={{ color: (quote.preMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
-                {isKRW
-                  ? formatChangeKRW(quote.preMarketChange, quote.preMarketChangePercent, rate)
-                  : formatChange(quote.preMarketChange, quote.preMarketChangePercent)}
-              </span>
-            </span>
-          )}
-          {quote.postMarketPrice != null && (
-            <span>
-              <span style={{
-                fontSize: '13px', fontWeight: 600, marginRight: '6px',
-                padding: '1px 5px', borderRadius: '4px',
-                background: '#818cf822', color: '#818cf8',
-              }}>애프터장</span>
-              <span style={{ color: theme.text.primary }}>{px(quote.postMarketPrice)}</span>
-              {' '}<span style={{ color: (quote.postMarketChange ?? 0) >= 0 ? theme.up : theme.down }}>
-                {isKRW
-                  ? formatChangeKRW(quote.postMarketChange, quote.postMarketChangePercent, rate)
-                  : formatChange(quote.postMarketChange, quote.postMarketChangePercent)}
-              </span>
-            </span>
-          )}
-        </div>
-      )}
 
       {/* 당일 정보 */}
       <div style={{

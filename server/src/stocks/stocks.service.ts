@@ -40,6 +40,10 @@ export class StocksService {
         postMarketPrice: result.postMarketPrice,
         postMarketChange: result.postMarketChange,
         postMarketChangePercent: result.postMarketChangePercent,
+        // 마지막 본장 거래 시각 (장마감 vs 휴장 구분용)
+        regularMarketTime: result.regularMarketTime instanceof Date
+          ? result.regularMarketTime.getTime()
+          : null,
       };
     } catch {
       throw new NotFoundException(`종목을 찾을 수 없습니다: ${symbol}`);
@@ -130,17 +134,33 @@ export class StocksService {
     const result = await yf.chart(symbol, { period1, period2, interval: '1d' });
     const quotes = result.quotes.filter((q) => q.close != null);
 
-    if (quotes.length === 0) {
-      throw new NotFoundException(`해당 날짜의 주가 데이터가 없습니다: ${symbol} (${date})`);
+    if (quotes.length > 0) {
+      return {
+        price: quotes[0].close as number,
+        date: quotes[0].date.toISOString().split('T')[0],
+        isCurrentPrice: false,
+        firstTradeDate: result.meta.firstTradeDate
+          ? (result.meta.firstTradeDate as Date).toISOString().split('T')[0]
+          : null,
+      };
     }
 
-    return {
-      price: quotes[0].close as number,
-      date: quotes[0].date.toISOString().split('T')[0],
-      firstTradeDate: result.meta.firstTradeDate
-        ? (result.meta.firstTradeDate as Date).toISOString().split('T')[0]
-        : null,
-    };
+    // 오늘 날짜이고 아직 일봉이 없으면 (장 중, 프리/애프터장) 현재가 사용
+    const today = new Date().toISOString().split('T')[0];
+    if (date === today) {
+      const quote = await yf.quote(symbol);
+      const price = quote.regularMarketPrice;
+      if (price) {
+        return {
+          price,
+          date: today,
+          isCurrentPrice: true,
+          firstTradeDate: null,
+        };
+      }
+    }
+
+    throw new NotFoundException(`해당 날짜의 주가 데이터가 없습니다: ${symbol} (${date})`);
   }
 
   async getScreener(quoteType: string, sort: string, order: string) {

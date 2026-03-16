@@ -26,6 +26,7 @@ export interface StockQuote {
   postMarketPrice?: number
   postMarketChange?: number
   postMarketChangePercent?: number
+  regularMarketTime?: number | null
 }
 
 export interface StockSearchResult {

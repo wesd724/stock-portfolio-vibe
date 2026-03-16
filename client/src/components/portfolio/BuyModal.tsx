@@ -40,7 +40,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
   const [currency, setCurrency] = useState<'KRW' | 'USD'>(initialCurrency)
   const [amountRaw, setAmountRaw] = useState('')
   const [sharesRaw, setSharesRaw] = useState('')
-  const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number } | null>(null)
+  const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number; isCurrentPrice?: boolean } | null>(null)
   const [loadingPrice, setLoadingPrice] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -96,7 +96,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
         const forexData = await forexRes.json()
         exchangeRate = forexData.rate ?? 1300
       }
-      const info = { price: priceData.price, actualDate: priceData.date, exchangeRate }
+      const info = { price: priceData.price, actualDate: priceData.date, exchangeRate, isCurrentPrice: priceData.isCurrentPrice ?? false }
       setPriceInfo(info)
       // 기존 입력값으로 반대쪽 재계산
       const aNum = parseInput(amountRaw)
@@ -209,7 +209,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
         {priceInfo && (
           <div style={{ background: theme.bg.input, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ marginBottom: '4px' }}>
-              <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} 종가  </span>
+              <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} {priceInfo.isCurrentPrice ? '현재가' : '종가'}  </span>
               <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
               <span style={{ color: theme.text.muted }}>  ≈  </span>
               <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
