@@ -139,7 +139,7 @@ export default function MarketOverview() {
           onMouseDown={(e) => { if (e.target === e.currentTarget) setShowGuide(false) }}
           style={{ position: 'fixed', inset: 0, background: theme.overlay, zIndex: 400, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
         >
-          <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', maxWidth: '520px', width: '100%', maxHeight: '80vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', maxWidth: '680px', width: '100%', maxHeight: '82vh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 700, color: theme.text.primary }}>시장 지표 안내</h3>
               <button
