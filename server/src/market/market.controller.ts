@@ -9,4 +9,9 @@ export class MarketController {
   getOverview() {
     return this.marketService.getOverview();
   }
+
+  @Get('putcall')
+  getPutCallRatios() {
+    return this.marketService.getPutCallRatios();
+  }
 }

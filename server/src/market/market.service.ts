@@ -24,6 +24,28 @@ const MARKET_SYMBOLS = [
 
 @Injectable()
 export class MarketService {
+  async getPutCallRatios() {
+    const symbols = ['SPY', 'QQQ'];
+    const results = await Promise.allSettled(
+      symbols.map(async (symbol) => {
+        const data = await yf.options(symbol);
+        let totalCallVolume = 0;
+        let totalPutVolume = 0;
+        for (const chain of data.options) {
+          for (const c of chain.calls) totalCallVolume += c.volume ?? 0;
+          for (const p of chain.puts) totalPutVolume += p.volume ?? 0;
+        }
+        const ratio = totalCallVolume > 0
+          ? parseFloat((totalPutVolume / totalCallVolume).toFixed(3))
+          : null;
+        return { symbol, ratio };
+      }),
+    );
+    return results
+      .filter((r) => r.status === 'fulfilled')
+      .map((r) => (r as PromiseFulfilledResult<any>).value);
+  }
+
   async getOverview() {
     const results = await Promise.allSettled(
       MARKET_SYMBOLS.map(async ({ symbol, label }) => {
