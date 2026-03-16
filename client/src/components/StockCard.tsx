@@ -67,7 +67,6 @@ export default function StockCard({ quote }: Props) {
   const { toggle, isFavorite } = useFavorites()
   const { currentUSDKRW } = usePortfolio()
   const { isMobile } = useWindowSize()
-  const isPositive = quote.change >= 0
   const marketState = marketStateLabel(quote.marketState, quote.regularMarketTime)
   const favorited = isFavorite(quote.symbol)
   const isKRW = viewCurrency === 'KRW'
