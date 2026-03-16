@@ -15,7 +15,7 @@ const MARKET_SYMBOLS = [
   { symbol: '^VIX',    label: 'VIX 지수' },
   { symbol: 'GC=F',    label: '골드 선물' },
   { symbol: 'SI=F',    label: '은 선물' },
-  { symbol: 'CL=F',    label: 'WTI 원유 선물' },
+  { symbol: 'CL=F',    label: 'WTI 원유' },
   { symbol: '^KS11',   label: '코스피' },
   { symbol: '^KQ11',   label: '코스닥' },
   { symbol: 'BTC-USD', label: '비트코인' },
