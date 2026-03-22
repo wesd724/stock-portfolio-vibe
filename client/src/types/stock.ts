@@ -40,7 +40,7 @@ export interface ChartPoint {
   close: number
 }
 
-export type ChartInterval = '1m' | '5m' | '1h' | '1d'
+export type ChartInterval = '1m' | '5m' | '15m' | '1h' | '1d' | '1wk' | '1mo' | '12mo'
 
 export interface NewsItem {
   title: string

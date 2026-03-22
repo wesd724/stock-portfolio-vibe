@@ -11,8 +11,8 @@ const FEEDS = [
     source: 'Google News',
   },
   { url: 'https://feeds.apnews.com/apnews/business', source: 'AP News' },
-  { url: 'https://feeds.marketwatch.com/marketwatch/topstories/', source: 'MarketWatch' },
-  { url: 'https://feeds.marketwatch.com/marketwatch/marketpulse/', source: 'MarketWatch' },
+  { url: 'https://www.investing.com/rss/news_25.rss', source: 'Investing.com' },
+  { url: 'https://finance.yahoo.com/rss/topstories', source: 'Yahoo Finance' },
 ];
 
 const ITEMS_PER_FEED = 20;

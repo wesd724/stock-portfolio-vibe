@@ -5,7 +5,15 @@ import Parser from 'rss-parser';
 const yf = new YahooFinance();
 const rssParser = new Parser();
 
-type ChartInterval = '1m' | '5m' | '1h' | '1d' | '1mo';
+type ChartInterval = '1m' | '5m' | '15m' | '1h' | '1d' | '1wk' | '1mo' | '12mo';
+
+// Yahoo Finance 미지원 인터벌 매핑 (12mo→1mo)
+const yfIntervalMap: Record<ChartInterval, string> = {
+  '1m': '1m', '5m': '5m', '15m': '15m',
+  '1h': '1h',
+  '1d': '1d', '1wk': '1wk',
+  '1mo': '1mo', '12mo': '1mo',
+};
 
 @Injectable()
 export class StocksService {
@@ -59,11 +67,10 @@ export class StocksService {
       period2 = to ? new Date(to) : undefined;
     } else {
       const periodMap: Record<ChartInterval, number> = {
-        '1m': 1,
-        '5m': 5,
+        '1m': 1, '5m': 5, '15m': 7,
         '1h': 30,
-        '1d': 365,
-        '1mo': 1825,
+        '1d': 365, '1wk': 1825,
+        '1mo': 1825, '12mo': 3650,
       };
       period1 = new Date(Date.now() - periodMap[interval] * 24 * 60 * 60 * 1000);
     }
@@ -71,7 +78,7 @@ export class StocksService {
     const result = await yf.chart(symbol, {
       period1,
       ...(period2 && { period2 }),
-      interval,
+      interval: yfIntervalMap[interval] as any,
     });
 
     return result.quotes

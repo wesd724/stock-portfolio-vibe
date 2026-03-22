@@ -16,7 +16,8 @@ const SOURCE_COLORS: Record<string, string> = {
   CNBC: '#60a5fa',
   'Google News': '#34d399',
   'AP News': '#fb923c',
-  MarketWatch: '#a78bfa',
+  'Investing.com': '#a78bfa',
+  'Yahoo Finance': '#6366f1',
 }
 
 function formatDate(dateStr: string) {
@@ -94,7 +95,7 @@ export default function GlobalNews() {
         {/* 헤더 */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.text.primary, margin: 0 }}>국제 금융 뉴스</h3>
+            <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.text.primary, margin: 0 }}>국제 뉴스</h3>
             <div style={{ display: 'flex', gap: '6px' }}>
               {Object.entries(SOURCE_COLORS).map(([src, color]) => (
                 <span key={src} style={{

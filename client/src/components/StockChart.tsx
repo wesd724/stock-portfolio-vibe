@@ -9,21 +9,39 @@ interface Props {
 }
 
 const INTERVALS: { label: string; value: ChartInterval }[] = [
-  { label: '1분', value: '1m' },
-  { label: '5분', value: '5m' },
-  { label: '1시간', value: '1h' },
-  { label: '1일', value: '1d' },
+  { label: '1분',  value: '1m'   },
+  { label: '5분',  value: '5m'   },
+  { label: '15분', value: '15m'  },
+  { label: '1시간', value: '1h'  },
+  { label: '1일',  value: '1d'   },
+  { label: '1주',  value: '1wk'  },
+  { label: '1달',  value: '1mo'  },
+  { label: '12달', value: '12mo' },
 ]
 
-function formatTime(timestamp: number, interval: ChartInterval) {
+function formatTime(timestamp: number, interval: ChartInterval, full = false) {
   const date = new Date(timestamp)
-  if (interval === '1m' || interval === '5m') {
-    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  if (interval === '1m' || interval === '5m' || interval === '15m') {
+    return full
+      ? date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' }) + ' ' +
+        date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      : date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
   }
   if (interval === '1h') {
-    return date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
+    return full
+      ? date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' }) + ' ' +
+        date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      : date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
   }
-  return date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
+  if (interval === '1mo' || interval === '12mo') {
+    return full
+      ? date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric' })
+      : date.toLocaleDateString('ko-KR', { year: '2-digit', month: 'numeric' })
+  }
+  // 1d, 1wk
+  return full
+    ? date.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })
+    : date.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
 }
 
 export default function StockChart({ symbol, isPositive }: Props) {
@@ -119,7 +137,7 @@ export default function StockChart({ symbol, isPositive }: Props) {
             />
             <Tooltip
               contentStyle={{ background: theme.bg.input, border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '13px' }}
-              labelFormatter={(t) => formatTime(Number(t), interval)}
+              labelFormatter={(t) => formatTime(Number(t), interval, true)}
               formatter={(v) => [(v as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), '종가']}
             />
             <Line
