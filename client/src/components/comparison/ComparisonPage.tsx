@@ -9,13 +9,15 @@ import {
   ResponsiveContainer, Legend,
 } from 'recharts'
 
-type CompareInterval = '1m' | '5m' | '1d' | '1mo'
+type CompareInterval = '1m' | '1h' | '1d' | '1wk' | '1mo' | '12mo'
 
 const INTERVALS: { label: string; value: CompareInterval }[] = [
   { label: '1분', value: '1m' },
-  { label: '5분', value: '5m' },
+  { label: '1시간', value: '1h' },
   { label: '1일', value: '1d' },
-  { label: '한달', value: '1mo' },
+  { label: '1주', value: '1wk' },
+  { label: '1달', value: '1mo' },
+  { label: '12달', value: '12mo' },
 ]
 
 const COLORS = [
@@ -24,7 +26,7 @@ const COLORS = [
 ]
 
 const DEFAULT_DAYS: Record<CompareInterval, number> = {
-  '1m': 1, '5m': 5, '1d': 365, '1mo': 1825,
+  '1m': 1, '1h': 30, '1d': 365, '1wk': 1825, '1mo': 1825, '12mo': 3650,
 }
 
 interface SymbolEntry { symbol: string; name: string }
@@ -38,12 +40,18 @@ function getDefaultRange(interval: CompareInterval) {
   return { from, to }
 }
 
-function formatTime(ts: number, interval: CompareInterval) {
+function formatTime(ts: number, interval: CompareInterval, full = false) {
   const d = new Date(ts)
-  if (interval === '1m' || interval === '5m')
+  if (interval === '1m')
     return d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })
-  if (interval === '1d')
-    return d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
+  if (interval === '1h')
+    return full
+      ? d.toLocaleString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric', hour: '2-digit' })
+      : d.toLocaleString('ko-KR', { month: 'numeric', day: 'numeric', hour: '2-digit' })
+  if (interval === '1d' || interval === '1wk')
+    return full
+      ? d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric', day: 'numeric' })
+      : d.toLocaleDateString('ko-KR', { month: 'numeric', day: 'numeric' })
   return d.toLocaleDateString('ko-KR', { year: 'numeric', month: 'numeric' })
 }
 
@@ -337,11 +345,11 @@ export default function ComparisonPage() {
         ) : (
           <ResponsiveContainer width="100%" height={320}>
             <LineChart data={mergedData}>
-              <XAxis dataKey="time" tickFormatter={(t) => formatTime(Number(t), interval)} tick={{ fill: theme.text.muted, fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
+              <XAxis dataKey="time" tickFormatter={(t) => formatTime(Number(t), interval, true)} tick={{ fill: theme.text.muted, fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
               <YAxis tick={{ fill: theme.text.muted, fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`} width={68} />
               <Tooltip
                 contentStyle={{ background: theme.bg.input, border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '12px' }}
-                labelFormatter={(t) => formatTime(Number(t), interval)}
+                labelFormatter={(t) => formatTime(Number(t), interval, true)}
                 formatter={(v, name) => { const n = v as number; return [`${n >= 0 ? '+' : ''}${n.toFixed(2)}%`, name as string] }}
               />
               <Legend formatter={(value) => <span style={{ color: theme.text.secondary, fontSize: '12px' }}>{value}</span>} />
