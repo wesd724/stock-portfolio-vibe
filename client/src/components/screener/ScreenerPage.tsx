@@ -202,9 +202,9 @@ export default function ScreenerPage() {
                     <span style={{ fontWeight: 700, color: theme.text.primary }}>{item.symbol}</span>
                     <span style={{ marginLeft: '8px', fontSize: '12px', color: theme.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
                   </div>
-                  <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toFixed(2)}</span>
+                  <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                   <span style={{ textAlign: 'right', color }}>
-                    {isPos ? '+' : ''}{item.change.toFixed(2)}
+                    {isPos ? '+' : ''}{item.change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                   <span style={{ textAlign: 'right', color, fontWeight: 600 }}>
                     {isPos ? '+' : ''}{item.changePercent.toFixed(2)}%

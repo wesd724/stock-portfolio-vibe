@@ -15,7 +15,7 @@ function formatKRW(amount: number): string {
 }
 
 function formatUSD(amount: number): string {
-  return '$' + amount.toFixed(2)
+  return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 export default function HoldingItem({ holding }: Props) {

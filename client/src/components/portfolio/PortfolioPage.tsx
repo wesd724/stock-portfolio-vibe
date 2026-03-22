@@ -138,8 +138,8 @@ export default function PortfolioPage() {
                       <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
                     </td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toFixed(2)}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
                       {gainLossDisplay}

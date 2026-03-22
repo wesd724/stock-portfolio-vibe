@@ -114,13 +114,13 @@ export default function StockChart({ symbol, isPositive }: Props) {
               tick={{ fill: theme.text.muted, fontSize: 11 }}
               tickLine={false}
               axisLine={false}
-              tickFormatter={(v) => v.toFixed(2)}
+              tickFormatter={(v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               width={60}
             />
             <Tooltip
               contentStyle={{ background: theme.bg.input, border: `1px solid ${theme.border}`, borderRadius: '8px', fontSize: '13px' }}
               labelFormatter={(t) => formatTime(Number(t), interval)}
-              formatter={(v) => [(v as number).toFixed(2), '종가']}
+              formatter={(v) => [(v as number).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), '종가']}
             />
             <Line
               type="monotone"

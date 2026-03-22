@@ -18,7 +18,7 @@ function formatKRW(amount: number): string {
 }
 
 function formatUSD(amount: number): string {
-  return '$' + amount.toFixed(2)
+  return '$' + amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 // 입력값 포맷 (쉼표 추가)

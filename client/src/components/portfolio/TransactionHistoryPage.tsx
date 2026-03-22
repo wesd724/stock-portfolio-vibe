@@ -43,7 +43,7 @@ export default function TransactionHistoryPage() {
                 const amountDisplay = isKRW && rate > 0
                   ? formatKRW(tx.amount * rate)
                   : formatUSD(tx.amount)
-                const rateDisplay = rate > 0 ? `${rate.toFixed(0)}원` : '-'
+                const rateDisplay = rate > 0 ? `${rate.toLocaleString('ko-KR')}원` : '-'
 
                 return (
                   <tr key={tx.id} style={{ borderTop: `1px solid ${theme.border}` }}>
@@ -61,7 +61,7 @@ export default function TransactionHistoryPage() {
                         {tx.type === 'BUY' ? '매수' : '매도'}
                       </span>
                     </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${tx.priceAtDate.toFixed(2)}</td>
+                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${tx.priceAtDate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{tx.shares.toFixed(4)}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{amountDisplay}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.muted, whiteSpace: 'nowrap' }}>{rateDisplay}</td>

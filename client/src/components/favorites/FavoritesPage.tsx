@@ -278,10 +278,10 @@ export default function FavoritesPage() {
                     <span style={{ fontWeight: 600, color: theme.text.primary }}>{q.symbol}</span>
                     <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.name}</span>
                     <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
-                      {q.currency} {q.price?.toFixed(2)}
+                      {q.currency} {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     <span style={{ textAlign: 'right', color: changeColor }}>
-                      {sign}{q.change?.toFixed(2)} ({sign}{q.changePercent?.toFixed(2)}%)
+                      {sign}{q.change?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sign}{q.changePercent?.toFixed(2)}%)
                     </span>
                     <span style={{ textAlign: 'center' }}>
                       <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>

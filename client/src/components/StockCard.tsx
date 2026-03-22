@@ -38,7 +38,7 @@ function formatNumberKRW(n: number | undefined) {
 function formatChange(change: number | undefined, percent: number | undefined) {
   if (change == null || percent == null) return '-'
   const sign = change >= 0 ? '+' : ''
-  return `${sign}${change.toFixed(2)} (${sign}${percent.toFixed(2)}%)`
+  return `${sign}${change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${sign}${percent.toFixed(2)}%)`
 }
 
 function formatChangeKRW(changeUSD: number | undefined, percent: number | undefined, rate: number) {
@@ -90,7 +90,7 @@ export default function StockCard({ quote }: Props) {
     if (usd == null) return '-'
     return isKRW
       ? `₩ ${Math.round(usd * rate).toLocaleString('ko-KR')}`
-      : `${quote.currency} ${usd.toFixed(2)}`
+      : `${quote.currency} ${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   async function handleRefresh() {
@@ -243,7 +243,7 @@ export default function StockCard({ quote }: Props) {
           { label: '배당수익률', value: quote.dividendYield != null ? `${(quote.dividendYield * 100).toFixed(2)}%` : '-' },
           { label: '52주 범위', value: isKRW
             ? `${px(quote.fiftyTwoWeekLow)} ~ ${px(quote.fiftyTwoWeekHigh)}`
-            : `${quote.fiftyTwoWeekLow?.toFixed(2) ?? '-'} ~ ${quote.fiftyTwoWeekHigh?.toFixed(2) ?? '-'}` },
+            : `${quote.fiftyTwoWeekLow?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '-'} ~ ${quote.fiftyTwoWeekHigh?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) ?? '-'}` },
         ].map(({ label, value }) => (
           <div key={label}>
             <div style={{ color: theme.text.muted }}>{label}</div>

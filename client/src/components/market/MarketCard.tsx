@@ -51,7 +51,7 @@ export default function MarketCard({ item }: Props) {
         {item.price?.toLocaleString(undefined, { maximumFractionDigits: 2 })}
       </div>
       <div style={{ fontSize: '13px', color, marginTop: '4px' }}>
-        {sign}{item.change?.toFixed(2)} ({sign}{item.changePercent?.toFixed(2)}%)
+        {sign}{item.change?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sign}{item.changePercent?.toFixed(2)}%)
       </div>
     </div>
   )

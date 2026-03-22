@@ -373,7 +373,7 @@ export default function ComparisonPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '13px' }}>
                       <span style={{ fontWeight: 600, color: COLORS[i % COLORS.length] }}>{symbol}</span>
                       <span style={{ display: 'flex', gap: '16px', color: theme.text.muted }}>
-                        <span>{first != null ? `$${first.toFixed(2)}` : '-'} → {last != null ? `$${last.toFixed(2)}` : '-'}</span>
+                        <span>{first != null ? `$${first.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'} → {last != null ? `$${last.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'}</span>
                         <span style={{ fontWeight: 700, color: ret == null ? theme.text.muted : ret >= 0 ? theme.up : theme.down, minWidth: '80px', textAlign: 'right' }}>
                           {ret == null ? '-' : `${ret >= 0 ? '+' : ''}${ret.toFixed(2)}%`}
                         </span>
@@ -410,7 +410,7 @@ export default function ComparisonPage() {
                   {[
                     {
                       label: '현재가', fn: (q: StockQuote) =>
-                        q.price != null ? `$${q.price.toFixed(2)}` : '-'
+                        q.price != null ? `$${q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
                     },
                     {
                       label: '등락률', fn: (q: StockQuote) => {
@@ -427,11 +427,11 @@ export default function ComparisonPage() {
                     },
                     {
                       label: '52주 최고', fn: (q: StockQuote) =>
-                        q.fiftyTwoWeekHigh != null ? `$${q.fiftyTwoWeekHigh.toFixed(2)}` : '-'
+                        q.fiftyTwoWeekHigh != null ? `$${q.fiftyTwoWeekHigh.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
                     },
                     {
                       label: '52주 최저', fn: (q: StockQuote) =>
-                        q.fiftyTwoWeekLow != null ? `$${q.fiftyTwoWeekLow.toFixed(2)}` : '-'
+                        q.fiftyTwoWeekLow != null ? `$${q.fiftyTwoWeekLow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
                     },
                   ].map(({ label, fn }) => (
                     <tr key={label} style={{ borderBottom: `1px solid ${theme.border}` }}
