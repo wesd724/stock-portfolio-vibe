@@ -7,6 +7,14 @@ import { usePortfolio } from '../context/PortfolioContext'
 import { useWindowSize } from '../hooks/useWindowSize'
 import BuyModal from './portfolio/BuyModal'
 
+const MARKET_OVERVIEW_SYMBOLS = new Set([
+  'NQ=F', 'ES=F', 'YM=F', 'RTY=F',
+  'KRW=X', 'DX=F', '2YY=F', '^TNX', '^VIX',
+  'GC=F', 'SI=F', 'CL=F',
+  '^KS11', '^KQ11',
+  'BTC-USD', 'ETH-USD',
+])
+
 interface Props {
   quote: StockQuote
 }
@@ -41,12 +49,17 @@ function formatChangeKRW(changeUSD: number | undefined, percent: number | undefi
 }
 
 function marketStateLabel(state: string, regularMarketTime?: number | null) {
+  const todayStr = new Date().toDateString()
+  const lastTradeStr = regularMarketTime != null ? new Date(regularMarketTime).toDateString() : null
+
   if (state === 'CLOSED') {
-    const isToday = regularMarketTime != null &&
-      new Date(regularMarketTime).toDateString() === new Date().toDateString()
-    return isToday
+    return lastTradeStr === todayStr
       ? { label: '장마감', color: '#64748b' }
       : { label: '휴장', color: '#64748b' }
+  }
+  // Yahoo Finance가 휴장/주말에도 REGULAR를 반환하는 경우: 마지막 거래일이 오늘이 아니면 휴장
+  if (state === 'REGULAR' && lastTradeStr != null && lastTradeStr !== todayStr) {
+    return { label: '휴장', color: '#64748b' }
   }
   const map: Record<string, { label: string; color: string }> = {
     REGULAR:  { label: '본장',    color: '#22c55e' },
@@ -68,6 +81,7 @@ export default function StockCard({ quote }: Props) {
   const { currentUSDKRW } = usePortfolio()
   const { isMobile } = useWindowSize()
   const marketState = marketStateLabel(quote.marketState, quote.regularMarketTime)
+  const isMarketOverviewSymbol = MARKET_OVERVIEW_SYMBOLS.has(quote.symbol)
   const favorited = isFavorite(quote.symbol)
   const isKRW = viewCurrency === 'KRW'
   const rate = currentUSDKRW
@@ -102,8 +116,10 @@ export default function StockCard({ quote }: Props) {
         gap: isMobile ? '12px' : 0,
       }}>
         <div>
-          <span style={{ fontSize: '13px', color: theme.text.secondary }}>{quote.symbol}</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px', flexWrap: 'wrap' }}>
+          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 700, color: theme.text.primary, marginBottom: '4px' }}>{quote.name}</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text.muted }}>{quote.symbol}</span>
+            <span style={{ fontSize: '13px', color: theme.text.muted }}>·</span>
             <span style={{
               fontSize: '13px', fontWeight: 600,
               padding: '2px 7px', borderRadius: '4px',
@@ -127,7 +143,6 @@ export default function StockCard({ quote }: Props) {
               )
             })()}
           </div>
-          <h2 style={{ fontSize: isMobile ? '16px' : '18px', fontWeight: 600, marginTop: '4px', color: theme.text.primary }}>{quote.name}</h2>
         </div>
         <div style={{ textAlign: isMobile ? 'left' : 'right', width: isMobile ? '100%' : 'auto' }}>
           <div style={{
@@ -165,13 +180,15 @@ export default function StockCard({ quote }: Props) {
             >
               매수
             </button>
-            <button
-              onClick={() => toggle(quote.symbol)}
-              title={favorited ? '즐겨찾기 해제' : '즐겨찾기 추가'}
-              style={{ padding: '6px 10px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'transparent', cursor: 'pointer', fontSize: '18px', color: favorited ? '#f59e0b' : theme.text.muted, lineHeight: 1 }}
-            >
-              {favorited ? '★' : '☆'}
-            </button>
+            {!isMarketOverviewSymbol && (
+              <button
+                onClick={() => toggle(quote.symbol)}
+                title={favorited ? '즐겨찾기 해제' : '즐겨찾기 추가'}
+                style={{ padding: '6px 10px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'transparent', cursor: 'pointer', fontSize: '18px', color: favorited ? '#f59e0b' : theme.text.muted, lineHeight: 1 }}
+              >
+                {favorited ? '★' : '☆'}
+              </button>
+            )}
             <button
               onClick={handleRefresh}
               disabled={refreshing}
