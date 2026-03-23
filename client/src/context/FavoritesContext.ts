@@ -15,6 +15,8 @@ interface FavoritesStore {
   removeGroup: (id: string) => void
   renameGroup: (id: string, name: string) => void
   moveToGroup: (symbol: string, fromGroupId: string, toGroupId: string) => void
+  reorderSymbols: (groupId: string, symbols: string[]) => void
+  reorderGroups: (groups: FavoritesGroup[]) => void
 }
 
 function generateId() {
@@ -74,6 +76,12 @@ export const useFavorites = create<FavoritesStore>()(
       renameGroup: (id, name) => {
         set({ groups: get().groups.map((g) => (g.id === id ? { ...g, name } : g)) })
       },
+
+      reorderSymbols: (groupId, symbols) => {
+        set({ groups: get().groups.map((g) => g.id === groupId ? { ...g, symbols } : g) })
+      },
+
+      reorderGroups: (groups) => set({ groups }),
 
       moveToGroup: (symbol, fromGroupId, toGroupId) => {
         if (fromGroupId === toGroupId) return

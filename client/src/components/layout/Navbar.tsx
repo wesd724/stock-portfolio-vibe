@@ -101,14 +101,14 @@ export default function Navbar() {
       {useHamburger && menuOpen && (
         <div
           onClick={() => setMenuOpen(false)}
-          style={{ position: 'fixed', inset: 0, top: '60px', zIndex: 97 }}
+          style={{ position: 'fixed', inset: 0, top: '60px', zIndex: 201, background: 'rgba(0,0,0,0.4)' }}
         />
       )}
 
       {/* Mobile/tablet dropdown menu */}
       {useHamburger && menuOpen && (
         <div style={{
-          position: 'fixed', top: '60px', left: 0, right: 0, zIndex: 99,
+          position: 'fixed', top: '60px', left: 0, right: 0, zIndex: 203,
           background: theme.bg.root, borderBottom: `2px solid ${theme.border}`,
           padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px',
           maxHeight: 'calc(100vh - 60px)', overflowY: 'auto',

@@ -64,9 +64,9 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
   const map: Record<string, { label: string; color: string }> = {
     REGULAR:  { label: '본장',    color: '#22c55e' },
     PRE:      { label: '프리장',  color: '#f59e0b' },
-    PREPRE:   { label: '프리장',  color: '#f59e0b' },
+    PREPRE:   { label: '데이장',  color: '#64748b' },
     POST:     { label: '애프터장', color: '#818cf8' },
-    POSTPOST: { label: '애프터장', color: '#818cf8' },
+    POSTPOST: { label: '데이장',  color: '#64748b' },
   }
   return map[state] ?? { label: state, color: '#64748b' }
 }

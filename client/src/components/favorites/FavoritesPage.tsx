@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useFavorites } from '../../context/FavoritesContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
@@ -20,18 +20,19 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
   const map: Record<string, { label: string; color: string }> = {
     REGULAR: { label: '본장', color: '#22c55e' },
     PRE: { label: '프리장', color: '#f59e0b' },
-    PREPRE: { label: '프리장', color: '#f59e0b' },
+    PREPRE: { label: '데이장', color: '#64748b' },
     POST: { label: '애프터장', color: '#818cf8' },
-    POSTPOST: { label: '애프터장', color: '#818cf8' },
+    POSTPOST: { label: '데이장', color: '#64748b' },
   }
   return map[state] ?? { label: state, color: '#64748b' }
 }
 
 const GRID_COLS = '80px 1fr 120px 160px 100px 88px 40px'
+const GRID_COLS_REORDER = '24px 80px 1fr 120px 160px 100px 88px 40px'
 const GRID_MIN_WIDTH = '630px'
 
 export default function FavoritesPage() {
-  const { groups, toggle, addGroup, removeGroup, renameGroup, moveToGroup } = useFavorites()
+  const { groups, toggle, addGroup, removeGroup, renameGroup, moveToGroup, reorderSymbols, reorderGroups } = useFavorites()
   const allSymbols = groups.flatMap((g) => g.symbols)
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
@@ -43,6 +44,12 @@ export default function FavoritesPage() {
   const [editingName, setEditingName] = useState('')
   const [addingGroup, setAddingGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
+  const [reordering, setReordering] = useState(false)
+  const [refreshKey, setRefreshKey] = useState(0)
+  const [dragOver, setDragOver] = useState<{ groupId: string; index: number } | null>(null)
+  const dragRef = useRef<{ groupId: string; index: number } | null>(null)
+  const [dragGroupOver, setDragGroupOver] = useState<number | null>(null)
+  const dragGroupRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (allSymbols.length === 0) return
@@ -62,7 +69,7 @@ export default function FavoritesPage() {
       setQuotes(map)
       setLoading(false)
     })
-  }, [allSymbols.join(',')])
+  }, [allSymbols.slice().sort().join(','), refreshKey])
 
   function handleRowClick(quote: StockQuote) {
     setSelectedQuote(quote)
@@ -99,7 +106,24 @@ export default function FavoritesPage() {
         <span style={{ fontSize: '16px', fontWeight: 600, color: theme.text.primary }}>즐겨찾기</span>
         <span style={{ fontSize: '12px', color: theme.text.muted }}>총 {allSymbols.length}개</span>
         <div style={{ flex: 1 }} />
-        {addingGroup ? (
+        {!reordering && (
+          <button
+            onClick={() => setRefreshKey((k) => k + 1)}
+            style={{ fontSize: '14px', padding: '4px 8px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.muted, cursor: 'pointer' }}
+            title="현재가 새로고침"
+          >↻</button>
+        )}
+        <button
+          onClick={() => setReordering((v) => !v)}
+          style={{
+            fontSize: '12px', padding: '5px 12px', borderRadius: '6px',
+            border: `1px solid ${reordering ? theme.accent : theme.border}`,
+            background: reordering ? theme.accent : 'none',
+            color: reordering ? '#fff' : theme.text.secondary,
+            cursor: 'pointer',
+          }}
+        >{reordering ? '완료' : '순서 변경'}</button>
+        {!reordering && addingGroup ? (
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
             <input
               autoFocus
@@ -126,10 +150,12 @@ export default function FavoritesPage() {
             >취소</button>
           </div>
         ) : (
-          <button
-            onClick={() => setAddingGroup(true)}
-            style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.secondary, cursor: 'pointer' }}
-          >+ 그룹 추가</button>
+          !reordering && (
+            <button
+              onClick={() => setAddingGroup(true)}
+              style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.secondary, cursor: 'pointer' }}
+            >+ 그룹 추가</button>
+          )
         )}
       </div>
 
@@ -145,13 +171,14 @@ export default function FavoritesPage() {
           {/* 컬럼 헤더 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: GRID_COLS,
+            gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
             minWidth: GRID_MIN_WIDTH,
             padding: '8px 20px',
             fontSize: '11px',
             color: theme.text.muted,
             borderBottom: `1px solid ${theme.border}`,
           }}>
+            {reordering && <span />}
             <span>티커</span>
             <span>종목명</span>
             <span style={{ textAlign: 'right' }}>현재가</span>
@@ -162,18 +189,33 @@ export default function FavoritesPage() {
           </div>
 
           {/* 그룹 섹션 */}
-          {groups.map((group) => (
+          {groups.map((group, groupIdx) => (
             <div key={group.id}>
               {/* 그룹 헤더 */}
-              <div style={{
-                minWidth: GRID_MIN_WIDTH,
-                padding: '6px 20px',
-                background: theme.bg.hover,
-                borderBottom: `1px solid ${theme.border}`,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}>
+              <div
+                draggable={reordering}
+                onDragStart={() => { dragGroupRef.current = groupIdx }}
+                onDragOver={(e) => { e.preventDefault(); setDragGroupOver(groupIdx) }}
+                onDragLeave={() => setDragGroupOver(null)}
+                onDrop={() => {
+                  if (dragGroupRef.current === null || dragGroupRef.current === groupIdx) return
+                  const from = dragGroupRef.current
+                  const arr = [...groups]
+                  arr.splice(groupIdx, 0, arr.splice(from, 1)[0])
+                  reorderGroups(arr)
+                  setDragGroupOver(null)
+                }}
+                style={{
+                  minWidth: GRID_MIN_WIDTH,
+                  padding: '6px 20px',
+                  background: dragGroupOver === groupIdx ? theme.bg.card : theme.bg.hover,
+                  borderBottom: `1px solid ${theme.border}`,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: reordering ? 'grab' : 'default',
+                }}>
+                {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', userSelect: 'none', flexShrink: 0 }}>≡</span>}
                 {editingGroupId === group.id ? (
                   <>
                     <input
@@ -229,19 +271,38 @@ export default function FavoritesPage() {
                 }}>
                   이 그룹에 종목이 없습니다.
                 </div>
-              ) : group.symbols.map((sym) => {
+              ) : group.symbols.map((sym, idx) => {
                 const q = quotes[sym]
+                const isDragTarget = dragOver?.groupId === group.id && dragOver?.index === idx
+
                 if (!q) return (
-                  <div key={sym} style={{
-                    display: 'grid',
-                    gridTemplateColumns: GRID_COLS,
-                    minWidth: GRID_MIN_WIDTH,
-                    padding: '14px 20px',
-                    fontSize: '13px',
-                    color: theme.text.muted,
-                    borderBottom: `1px solid ${theme.border}`,
-                    alignItems: 'center',
-                  }}>
+                  <div key={sym}
+                    draggable={reordering}
+                    onDragStart={() => { dragRef.current = { groupId: group.id, index: idx } }}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver({ groupId: group.id, index: idx }) }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={() => {
+                      if (!dragRef.current || dragRef.current.groupId !== group.id) return
+                      const from = dragRef.current.index
+                      if (from === idx) return
+                      const syms = [...group.symbols]
+                      syms.splice(idx, 0, syms.splice(from, 1)[0])
+                      reorderSymbols(group.id, syms)
+                      setDragOver(null)
+                    }}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
+                      minWidth: GRID_MIN_WIDTH,
+                      padding: '14px 20px',
+                      fontSize: '13px',
+                      color: theme.text.muted,
+                      borderBottom: `1px solid ${theme.border}`,
+                      alignItems: 'center',
+                      background: isDragTarget ? theme.bg.hover : 'transparent',
+                      cursor: reordering ? 'grab' : 'default',
+                    }}>
+                    {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
                     <span>{sym}</span>
                     <span>로드 실패</span>
                     <span /><span /><span /><span />
@@ -260,21 +321,36 @@ export default function FavoritesPage() {
                 return (
                   <div
                     key={sym}
-                    onClick={() => handleRowClick(q)}
+                    draggable={reordering}
+                    onDragStart={() => { dragRef.current = { groupId: group.id, index: idx } }}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver({ groupId: group.id, index: idx }) }}
+                    onDragLeave={() => setDragOver(null)}
+                    onDrop={() => {
+                      if (!dragRef.current || dragRef.current.groupId !== group.id) return
+                      const from = dragRef.current.index
+                      if (from === idx) return
+                      const syms = [...group.symbols]
+                      syms.splice(idx, 0, syms.splice(from, 1)[0])
+                      reorderSymbols(group.id, syms)
+                      setDragOver(null)
+                    }}
+                    onClick={() => { if (!reordering) handleRowClick(q) }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: GRID_COLS,
+                      gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
                       minWidth: GRID_MIN_WIDTH,
                       padding: '14px 20px',
                       fontSize: '13px',
                       borderBottom: `1px solid ${theme.border}`,
-                      cursor: 'pointer',
+                      cursor: reordering ? 'grab' : 'pointer',
                       transition: 'background 0.1s',
                       alignItems: 'center',
+                      background: isDragTarget ? theme.bg.hover : 'transparent',
                     }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    onMouseEnter={(e) => { if (!reordering) e.currentTarget.style.background = theme.bg.hover }}
+                    onMouseLeave={(e) => { if (!reordering) e.currentTarget.style.background = 'transparent' }}
                   >
+                    {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
                     <span style={{ fontWeight: 600, color: theme.text.primary }}>{q.symbol}</span>
                     <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.name}</span>
                     <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
@@ -289,7 +365,7 @@ export default function FavoritesPage() {
                       </span>
                     </span>
                     <span style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                      {groups.length > 1 && (
+                      {!reordering && groups.length > 1 && (
                         <select
                           value={group.id}
                           onChange={(e) => moveToGroup(sym, group.id, e.target.value)}
@@ -311,8 +387,8 @@ export default function FavoritesPage() {
                       )}
                     </span>
                     <button
-                      onClick={(e) => { e.stopPropagation(); toggle(sym) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
+                      onClick={(e) => { e.stopPropagation(); if (!reordering) toggle(sym) }}
+                      style={{ background: 'none', border: 'none', cursor: reordering ? 'grab' : 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
                       title="즐겨찾기 해제"
                     >★</button>
                   </div>
