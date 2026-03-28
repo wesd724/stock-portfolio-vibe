@@ -503,8 +503,8 @@ export default function InvestmentPage() {
                     background: theme.bg.card, border: `1px solid ${theme.border}`,
                     borderRadius: '8px', color: theme.text.primary, fontSize: '13px',
                   }}
-                  formatter={(value: number, name: string) => [
-                    fmt(value),
+                  formatter={(value, name) => [
+                    fmt(Number(value)),
                     name === 'portfolioValue' ? '평가금액' : '투자금액',
                   ]}
                   labelStyle={{ color: theme.text.muted, marginBottom: '4px' }}
