@@ -1,0 +1,36 @@
+name: Deploy
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy to Oracle VM
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.ORACLE_HOST }}
+          username: ubuntu
+          key: ${{ secrets.ORACLE_SSH_KEY }}
+          script: |
+            set -e
+            cd ~/stock-vibe
+
+            git pull origin master
+
+            # 클라이언트 빌드
+            cd client
+            npm install
+            npm run build
+
+            # 서버 빌드
+            cd ../server
+            npm install
+            npm run build
+
+            # PM2 재시작 (없으면 새로 시작)
+            pm2 restart stock-server || pm2 start ecosystem.config.js
+            pm2 save

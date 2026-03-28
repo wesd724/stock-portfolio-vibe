@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { DatabaseModule } from './database/database.module';
@@ -8,7 +10,17 @@ import { PortfolioModule } from './portfolio/portfolio.module';
 import { NewsModule } from './news/news.module';
 
 @Module({
-  imports: [DatabaseModule, StocksModule, MarketModule, PortfolioModule, NewsModule],
+  imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', '..', 'client', 'dist'),
+      exclude: ['/api/(.*)'],
+    }),
+    DatabaseModule,
+    StocksModule,
+    MarketModule,
+    PortfolioModule,
+    NewsModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
