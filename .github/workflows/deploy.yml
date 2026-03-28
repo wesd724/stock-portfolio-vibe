@@ -19,6 +19,7 @@ jobs:
             set -e
             cd ~/stock-vibe
 
+            git checkout -- client/package-lock.json server/package-lock.json || true
             git pull origin master
 
             # 클라이언트 빌드
