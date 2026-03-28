@@ -14,7 +14,7 @@ const COLLAPSED_WIDTH = 0
 export default function Layout({ children }: Props) {
   const { isMobile } = useWindowSize()
   const [sidebarOpen, setSidebarOpen] = useState(() => window.innerWidth >= 768)
-  const { theme } = useTheme()
+  const { theme, isDark } = useTheme()
 
   return (
     <>
@@ -45,8 +45,8 @@ export default function Layout({ children }: Props) {
           borderRadius: '0 6px 6px 0',
           border: `1px solid ${theme.border}`,
           borderLeft: 'none',
-          background: theme.bg.card,
-          color: theme.text.muted,
+          background: isDark ? '#475569' : '#cbd5e1',
+          color: isDark ? '#e2e8f0' : '#334155',
           cursor: 'pointer',
           fontSize: '10px',
           display: 'flex',

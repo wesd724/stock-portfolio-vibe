@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 interface NewsItem {
   title: string
@@ -83,6 +84,7 @@ export default function GlobalNews() {
     setTranslating(false)
   }
 
+  const { isMobile } = useWindowSize()
   const visibleNews = allNews.slice(0, visibleCount)
   const hasMore = visibleCount < allNews.length
 
@@ -93,45 +95,48 @@ export default function GlobalNews() {
         padding: '20px 24px', border: `1px solid ${theme.border}`, marginTop: '12px',
       }}>
         {/* 헤더 */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          {/* 타이틀 + 버튼 행 */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '8px' : '0' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 600, color: theme.text.primary, margin: 0 }}>국제 뉴스</h3>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {Object.entries(SOURCE_COLORS).map(([src, color]) => (
-                <span key={src} style={{
-                  fontSize: '11px', padding: '2px 7px', borderRadius: '999px',
-                  background: theme.bg.input, color, border: `1px solid ${color}`,
-                }}>{src}</span>
-              ))}
+              <button
+                onClick={() => fetchNews(translated, true)}
+                disabled={loading || translating || refreshing}
+                title="새로고침"
+                style={{
+                  padding: '4px 10px', borderRadius: '6px',
+                  border: `1px solid ${theme.border}`, background: 'transparent',
+                  color: theme.text.secondary, cursor: 'pointer', fontSize: '14px',
+                }}
+              >
+                {refreshing ? '⟳' : '↻'}
+              </button>
+              <button
+                onClick={toggleTranslate}
+                disabled={loading || translating || refreshing}
+                style={{
+                  padding: '4px 12px', borderRadius: '6px',
+                  border: `1px solid ${theme.border}`,
+                  background: translated ? theme.accent : 'transparent',
+                  color: translated ? '#fff' : theme.text.secondary,
+                  cursor: loading || translating || refreshing ? 'default' : 'pointer',
+                  fontSize: '12px',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
+              </button>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px' }}>
-            <button
-              onClick={() => fetchNews(translated, true)}
-              disabled={loading || translating || refreshing}
-              title="새로고침"
-              style={{
-                padding: '4px 10px', borderRadius: '6px',
-                border: `1px solid ${theme.border}`, background: 'transparent',
-                color: theme.text.secondary, cursor: 'pointer', fontSize: '14px',
-              }}
-            >
-              {refreshing ? '⟳' : '↻'}
-            </button>
-            <button
-              onClick={toggleTranslate}
-              disabled={loading || translating || refreshing}
-              style={{
-                padding: '4px 12px', borderRadius: '6px',
-                border: `1px solid ${theme.border}`,
-                background: translated ? theme.accent : 'transparent',
-                color: translated ? '#fff' : theme.text.secondary,
-                cursor: loading || translating || refreshing ? 'default' : 'pointer',
-                fontSize: '12px',
-              }}
-            >
-              {translating ? '번역 중...' : translated ? '원문 보기' : '한국어 번역'}
-            </button>
+          {/* 소스 뱃지 행 */}
+          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+            {Object.entries(SOURCE_COLORS).map(([src, color]) => (
+              <span key={src} style={{
+                fontSize: '11px', padding: '2px 7px', borderRadius: '999px',
+                background: theme.bg.input, color, border: `1px solid ${color}`,
+              }}>{src}</span>
+            ))}
           </div>
         </div>
 
