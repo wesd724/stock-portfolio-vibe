@@ -104,66 +104,115 @@ export default function PortfolioPage() {
         ))}
       </div>
 
-      {/* 보유 종목 테이블 */}
-      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', minWidth: isKRW ? '800px' : '560px', borderCollapse: 'collapse', fontSize: '13px' }}>
-            <thead>
-              <tr style={{ background: theme.bg.input, color: theme.text.muted }}>
-                {tableHeaders.map((h) => (
-                  <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {holdings.map((h) => {
-                const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
-                const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
-                const pos = gainLossVal >= 0
-                const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
-                const gainLossDisplay = isKRW
-                  ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
-                  : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
+      {/* 보유 종목 목록 */}
+      {isMobile ? (
+        /* 모바일: 카드 레이아웃 */
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {holdings.map((h) => {
+            const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
+            const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
+            const pos = gainLossVal >= 0
+            const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
+            const gainLossDisplay = isKRW
+              ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
+              : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
 
-                return (
-                  <tr
-                    key={h.symbol}
-                    onClick={() => handleRowClick(h.symbol)}
-                    style={{ borderTop: `1px solid ${theme.border}`, cursor: 'pointer' }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                  >
-                    <td style={{ padding: '12px 16px', textAlign: 'right' }}>
-                      <div style={{ fontWeight: 700, color: theme.text.primary }}>{h.symbol}</div>
-                      <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
-                      {gainLossDisplay}
-                    </td>
-                    <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
+            return (
+              <div
+                key={h.symbol}
+                onClick={() => handleRowClick(h.symbol)}
+                style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '10px', padding: '14px 16px', cursor: 'pointer' }}
+              >
+                {/* 종목 + 수익률 */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                  <div>
+                    <span style={{ fontWeight: 700, color: theme.text.primary, fontSize: '15px' }}>{h.symbol}</span>
+                    <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '2px' }}>{h.name}</div>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontWeight: 700, color: pos ? theme.up : theme.down, fontSize: '14px' }}>
                       {pos ? '+' : ''}{gainLossPercentVal.toFixed(2)}%
-                    </td>
-                    {isKRW && (
-                      <>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>
-                          {h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}
-                        </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'right', color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>
-                          {h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}
-                        </td>
-                      </>
-                    )}
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                    </div>
+                    <div style={{ fontSize: '12px', color: pos ? theme.up : theme.down }}>{gainLossDisplay}</div>
+                  </div>
+                </div>
+                {/* 상세 지표 */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '12px' }}>
+                  <div><span style={{ color: theme.text.muted }}>수량  </span><span style={{ color: theme.text.primary }}>{h.totalShares.toFixed(4)}주</span></div>
+                  <div><span style={{ color: theme.text.muted }}>평가금액  </span><span style={{ color: theme.text.primary }}>{valueDisplay}</span></div>
+                  <div><span style={{ color: theme.text.muted }}>평균단가  </span><span style={{ color: theme.text.primary }}>${h.avgCostPerShare.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  <div><span style={{ color: theme.text.muted }}>현재가  </span><span style={{ color: theme.text.primary }}>${h.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span></div>
+                  {isKRW && (
+                    <>
+                      <div><span style={{ color: theme.text.muted }}>환차손익  </span><span style={{ color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>{h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}</span></div>
+                      <div><span style={{ color: theme.text.muted }}>가격손익  </span><span style={{ color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>{h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}</span></div>
+                    </>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
-      </div>
+      ) : (
+        /* PC: 테이블 */
+        <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto' }}>
+            <table style={{ width: '100%', minWidth: isKRW ? '800px' : '560px', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr style={{ background: theme.bg.input, color: theme.text.muted }}>
+                  {tableHeaders.map((h) => (
+                    <th key={h} style={{ padding: '12px 16px', textAlign: 'right', fontWeight: 500, whiteSpace: 'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {holdings.map((h) => {
+                  const gainLossVal = isKRW ? h.gainLossKrw : h.gainLoss
+                  const gainLossPercentVal = isKRW ? h.gainLossPercentKrw : h.gainLossPercent
+                  const pos = gainLossVal >= 0
+                  const valueDisplay = isKRW ? formatKRW(h.currentValueKrw) : formatUSD(h.currentValue)
+                  const gainLossDisplay = isKRW
+                    ? `${pos ? '+' : ''}${formatKRW(gainLossVal)}`
+                    : `${pos ? '+' : ''}${formatUSD(gainLossVal)}`
+
+                  return (
+                    <tr
+                      key={h.symbol}
+                      onClick={() => handleRowClick(h.symbol)}
+                      style={{ borderTop: `1px solid ${theme.border}`, cursor: 'pointer' }}
+                      onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                    >
+                      <td style={{ padding: '12px 16px', textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: theme.text.primary }}>{h.symbol}</div>
+                        <div style={{ color: theme.text.muted, fontSize: '11px' }}>{h.name}</div>
+                      </td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{h.totalShares.toFixed(4)}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.avgCostPerShare.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>${h.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.primary }}>{valueDisplay}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>{gainLossDisplay}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'right', color: pos ? theme.up : theme.down }}>
+                        {pos ? '+' : ''}{gainLossPercentVal.toFixed(2)}%
+                      </td>
+                      {isKRW && (
+                        <>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', color: h.fxGainLossKrw >= 0 ? theme.up : theme.down }}>
+                            {h.fxGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.fxGainLossKrw)}
+                          </td>
+                          <td style={{ padding: '12px 16px', textAlign: 'right', color: h.priceGainLossKrw >= 0 ? theme.up : theme.down }}>
+                            {h.priceGainLossKrw >= 0 ? '+' : ''}{formatKRW(h.priceGainLossKrw)}
+                          </td>
+                        </>
+                      )}
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 import { Transaction } from '../../types/portfolio'
 
 interface Props {
@@ -45,6 +46,7 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
   const [error, setError] = useState<string | null>(null)
   const { addTransaction } = usePortfolio()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   function calcAmountFromShares(sharesNum: number, info: typeof priceInfo): string {
     if (!info || sharesNum <= 0) return ''
@@ -192,7 +194,7 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
         {error && <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
 
         {/* 주수 / 금액 입력 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ fontSize: '13px', color: theme.text.secondary }}>주 수</label>
             <div style={{ display: 'flex', gap: '6px', marginTop: '6px' }}>

@@ -3,6 +3,7 @@ import { useFavorites } from '../../context/FavoritesContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 import { StockQuote } from '../../types/stock'
 
 function marketStateLabel(state: string, regularMarketTime?: number | null) {
@@ -30,6 +31,8 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
 const GRID_COLS = '80px 1fr 120px 160px 100px 88px 40px'
 const GRID_COLS_REORDER = '24px 80px 1fr 120px 160px 100px 88px 40px'
 const GRID_MIN_WIDTH = '630px'
+// 모바일: 티커 | 현재가 | 등락률 | 상태 | ★
+const GRID_COLS_MOBILE = '64px 1fr 72px 56px 32px'
 
 export default function FavoritesPage() {
   const { groups, toggle, addGroup, removeGroup, renameGroup, moveToGroup, reorderSymbols, reorderGroups } = useFavorites()
@@ -37,6 +40,7 @@ export default function FavoritesPage() {
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   const [quotes, setQuotes] = useState<Record<string, StockQuote>>({})
   const [loading, setLoading] = useState(false)
@@ -171,20 +175,26 @@ export default function FavoritesPage() {
           {/* 컬럼 헤더 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
-            minWidth: GRID_MIN_WIDTH,
-            padding: '8px 20px',
+            gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+            ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
+            padding: isMobile ? '8px 14px' : '8px 20px',
             fontSize: '11px',
             color: theme.text.muted,
             borderBottom: `1px solid ${theme.border}`,
           }}>
-            {reordering && <span />}
+            {!isMobile && reordering && <span />}
             <span>티커</span>
             <span>종목명</span>
             <span style={{ textAlign: 'right' }}>현재가</span>
-            <span style={{ textAlign: 'right' }}>본장 등락</span>
-            <span style={{ textAlign: 'center' }}>상태</span>
-            <span style={{ textAlign: 'center' }}>그룹 이동</span>
+            {isMobile ? (
+              <span style={{ textAlign: 'right' }}>등락률</span>
+            ) : (
+              <>
+                <span style={{ textAlign: 'right' }}>본장 등락</span>
+                <span style={{ textAlign: 'center' }}>상태</span>
+                <span style={{ textAlign: 'center' }}>그룹 이동</span>
+              </>
+            )}
             <span />
           </div>
 
@@ -206,7 +216,7 @@ export default function FavoritesPage() {
                   setDragGroupOver(null)
                 }}
                 style={{
-                  minWidth: GRID_MIN_WIDTH,
+                  ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
                   padding: '6px 20px',
                   background: dragGroupOver === groupIdx ? theme.bg.card : theme.bg.hover,
                   borderBottom: `1px solid ${theme.border}`,
@@ -262,8 +272,8 @@ export default function FavoritesPage() {
               {/* 종목 행 */}
               {group.symbols.length === 0 ? (
                 <div style={{
-                  minWidth: GRID_MIN_WIDTH,
-                  padding: '12px 20px',
+                  ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
+                  padding: isMobile ? '12px 14px' : '12px 20px',
                   fontSize: '12px',
                   color: theme.text.muted,
                   fontStyle: 'italic',
@@ -292,9 +302,9 @@ export default function FavoritesPage() {
                     }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
-                      minWidth: GRID_MIN_WIDTH,
-                      padding: '14px 20px',
+                      gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+                      ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
+                      padding: isMobile ? '12px 14px' : '14px 20px',
                       fontSize: '13px',
                       color: theme.text.muted,
                       borderBottom: `1px solid ${theme.border}`,
@@ -302,10 +312,10 @@ export default function FavoritesPage() {
                       background: isDragTarget ? theme.bg.hover : 'transparent',
                       cursor: reordering ? 'grab' : 'default',
                     }}>
-                    {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
+                    {!isMobile && reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
                     <span>{sym}</span>
                     <span>로드 실패</span>
-                    <span /><span /><span /><span />
+                    <span /><span />
                     <button
                       onClick={(e) => { e.stopPropagation(); toggle(sym) }}
                       style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0 }}
@@ -337,9 +347,9 @@ export default function FavoritesPage() {
                     onClick={() => { if (!reordering) handleRowClick(q) }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: reordering ? GRID_COLS_REORDER : GRID_COLS,
-                      minWidth: GRID_MIN_WIDTH,
-                      padding: '14px 20px',
+                      gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+                      ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
+                      padding: isMobile ? '12px 14px' : '14px 20px',
                       fontSize: '13px',
                       borderBottom: `1px solid ${theme.border}`,
                       cursor: reordering ? 'grab' : 'pointer',
@@ -350,42 +360,50 @@ export default function FavoritesPage() {
                     onMouseEnter={(e) => { if (!reordering) e.currentTarget.style.background = theme.bg.hover }}
                     onMouseLeave={(e) => { if (!reordering) e.currentTarget.style.background = 'transparent' }}
                   >
-                    {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
-                    <span style={{ fontWeight: 600, color: theme.text.primary }}>{q.symbol}</span>
-                    <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{q.name}</span>
-                    <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
-                      {q.currency} {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    {!isMobile && reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
+                    <span style={{ fontWeight: 600, color: theme.text.primary, fontSize: isMobile ? '12px' : '13px' }}>{q.symbol}</span>
+                    <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? '11px' : '13px' }}>{q.name}</span>
+                    <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500, fontSize: isMobile ? '12px' : '13px' }}>
+                      {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <span style={{ textAlign: 'right', color: changeColor }}>
-                      {sign}{q.change?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sign}{q.changePercent?.toFixed(2)}%)
-                    </span>
-                    <span style={{ textAlign: 'center' }}>
-                      <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>
-                        {ms.label}
+                    {isMobile ? (
+                      <span style={{ textAlign: 'right', color: changeColor, fontSize: '12px', fontWeight: 600 }}>
+                        {sign}{q.changePercent?.toFixed(2)}%
                       </span>
-                    </span>
-                    <span style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                      {!reordering && groups.length > 1 && (
-                        <select
-                          value={group.id}
-                          onChange={(e) => moveToGroup(sym, group.id, e.target.value)}
-                          style={{
-                            fontSize: '11px',
-                            padding: '2px 4px',
-                            borderRadius: '4px',
-                            border: `1px solid ${theme.border}`,
-                            background: theme.bg.input,
-                            color: theme.text.secondary,
-                            cursor: 'pointer',
-                            maxWidth: '84px',
-                          }}
-                        >
-                          {groups.map((g) => (
-                            <option key={g.id} value={g.id}>{g.name}</option>
-                          ))}
-                        </select>
-                      )}
-                    </span>
+                    ) : (
+                      <>
+                        <span style={{ textAlign: 'right', color: changeColor }}>
+                          {sign}{q.change?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sign}{q.changePercent?.toFixed(2)}%)
+                        </span>
+                        <span style={{ textAlign: 'center' }}>
+                          <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>
+                            {ms.label}
+                          </span>
+                        </span>
+                        <span style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                          {!reordering && groups.length > 1 && (
+                            <select
+                              value={group.id}
+                              onChange={(e) => moveToGroup(sym, group.id, e.target.value)}
+                              style={{
+                                fontSize: '11px',
+                                padding: '2px 4px',
+                                borderRadius: '4px',
+                                border: `1px solid ${theme.border}`,
+                                background: theme.bg.input,
+                                color: theme.text.secondary,
+                                cursor: 'pointer',
+                                maxWidth: '84px',
+                              }}
+                            >
+                              {groups.map((g) => (
+                                <option key={g.id} value={g.id}>{g.name}</option>
+                              ))}
+                            </select>
+                          )}
+                        </span>
+                      </>
+                    )}
                     <button
                       onClick={(e) => { e.stopPropagation(); if (!reordering) toggle(sym) }}
                       style={{ background: 'none', border: 'none', cursor: reordering ? 'grab' : 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useTheme } from '../../context/ThemeContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 type QuoteType = 'ALL' | 'EQUITY' | 'ETF'
 type SortField = 'changePercent' | 'volume' | 'avgVolume3M'
@@ -38,12 +39,14 @@ const SORT_FIELDS: { label: string; value: SortField }[] = [
 ]
 
 const GRID_COLS = '2fr 1fr 1fr 1fr 1fr 60px'
+const GRID_COLS_MOBILE = '1fr 80px 70px'
 const TABLE_MIN_WIDTH = '520px'
 
 export default function ScreenerPage() {
   const { theme } = useTheme()
   const { setSelectedQuote } = useStock()
   const { setPage } = useNavigation()
+  const { isMobile } = useWindowSize()
 
   const [quoteType, setQuoteType] = useState<QuoteType>('ALL')
   const [sortField, setSortField] = useState<SortField>('volume')
@@ -156,70 +159,71 @@ export default function ScreenerPage() {
 
       {/* 테이블 */}
       <div style={{ background: theme.bg.card, borderRadius: '12px', border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
-        <div style={{ overflowX: 'auto' }}>
-          {/* 헤더 */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: GRID_COLS,
-            minWidth: TABLE_MIN_WIDTH,
-            padding: '10px 16px', borderBottom: `1px solid ${theme.border}`,
-            fontSize: '12px', color: theme.text.muted, fontWeight: 600,
-          }}>
-            <span>종목</span>
-            <span style={{ textAlign: 'right' }}>현재가</span>
-            <span style={{ textAlign: 'right' }}>등락</span>
-            <span style={{ textAlign: 'right' }}>1일 등락률</span>
-            <span style={{ textAlign: 'right' }}>1일 거래량</span>
-            <span style={{ textAlign: 'right' }}>3개월</span>
-          </div>
-
-          {loading ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
-              불러오는 중...
-            </div>
-          ) : error ? (
-            <div style={{ padding: '40px', textAlign: 'center', color: theme.down, fontSize: '14px' }}>
-              {error}
-            </div>
-          ) : (
-            items.map((item, i) => {
-              const isPos = item.changePercent >= 0
-              const color = isPos ? theme.up : theme.down
-              return (
-                <div
-                  key={item.symbol}
-                  onClick={() => handleRowClick(item.symbol)}
-                  style={{
-                    display: 'grid', gridTemplateColumns: GRID_COLS,
-                    minWidth: TABLE_MIN_WIDTH,
-                    padding: '10px 16px',
-                    borderBottom: i < items.length - 1 ? `1px solid ${theme.border}` : 'none',
-                    cursor: 'pointer', fontSize: '13px',
-                  }}
-                  onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                  onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                >
-                  <div style={{ overflow: 'hidden' }}>
-                    <span style={{ fontWeight: 700, color: theme.text.primary }}>{item.symbol}</span>
-                    <span style={{ marginLeft: '8px', fontSize: '12px', color: theme.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>
-                  </div>
-                  <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                  <span style={{ textAlign: 'right', color }}>
-                    {isPos ? '+' : ''}{item.change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
-                  <span style={{ textAlign: 'right', color, fontWeight: 600 }}>
-                    {isPos ? '+' : ''}{item.changePercent.toFixed(2)}%
-                  </span>
-                  <span style={{ textAlign: 'right', color: theme.text.secondary }}>
-                    {formatVolume(item.volume)}
-                  </span>
-                  <span style={{ textAlign: 'right', color: theme.text.muted }}>
-                    {item.avgVolume3M ? formatVolume(item.avgVolume3M) : '-'}
-                  </span>
-                </div>
-              )
-            })
-          )}
+        {/* 헤더 */}
+        <div style={{
+          display: 'grid', gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : GRID_COLS,
+          ...(!isMobile && { minWidth: TABLE_MIN_WIDTH }),
+          padding: '10px 16px', borderBottom: `1px solid ${theme.border}`,
+          fontSize: '12px', color: theme.text.muted, fontWeight: 600,
+        }}>
+          <span>종목</span>
+          <span style={{ textAlign: 'right' }}>현재가</span>
+          <span style={{ textAlign: 'right' }}>등락률</span>
+          {!isMobile && <><span style={{ textAlign: 'right' }}>등락</span><span style={{ textAlign: 'right' }}>1일 거래량</span><span style={{ textAlign: 'right' }}>3개월</span></>}
         </div>
+
+        {loading ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
+            불러오는 중...
+          </div>
+        ) : error ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: theme.down, fontSize: '14px' }}>
+            {error}
+          </div>
+        ) : (
+          items.map((item, i) => {
+            const isPos = item.changePercent >= 0
+            const color = isPos ? theme.up : theme.down
+            return (
+              <div
+                key={item.symbol}
+                onClick={() => handleRowClick(item.symbol)}
+                style={{
+                  display: 'grid', gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : GRID_COLS,
+                  ...(!isMobile && { minWidth: TABLE_MIN_WIDTH }),
+                  padding: isMobile ? '10px 14px' : '10px 16px',
+                  borderBottom: i < items.length - 1 ? `1px solid ${theme.border}` : 'none',
+                  cursor: 'pointer', fontSize: '13px',
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+              >
+                <div style={{ overflow: 'hidden', minWidth: 0 }}>
+                  <span style={{ fontWeight: 700, color: theme.text.primary }}>{item.symbol}</span>
+                  {!isMobile && <span style={{ marginLeft: '8px', fontSize: '12px', color: theme.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</span>}
+                  {isMobile && <div style={{ fontSize: '11px', color: theme.text.muted, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.name}</div>}
+                </div>
+                <span style={{ textAlign: 'right', color: theme.text.primary }}>${item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                <span style={{ textAlign: 'right', color, fontWeight: 600 }}>
+                  {isPos ? '+' : ''}{item.changePercent.toFixed(2)}%
+                </span>
+                {!isMobile && (
+                  <>
+                    <span style={{ textAlign: 'right', color }}>
+                      {isPos ? '+' : ''}{item.change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span style={{ textAlign: 'right', color: theme.text.secondary }}>
+                      {formatVolume(item.volume)}
+                    </span>
+                    <span style={{ textAlign: 'right', color: theme.text.muted }}>
+                      {item.avgVolume3M ? formatVolume(item.avgVolume3M) : '-'}
+                    </span>
+                  </>
+                )}
+              </div>
+            )
+          })
+        )}
       </div>
     </div>
   )

@@ -1,5 +1,6 @@
 import { usePortfolio } from '../../context/PortfolioContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 function formatKRW(amount: number): string {
   return '₩' + Math.round(amount).toLocaleString('ko-KR')
@@ -12,6 +13,7 @@ function formatUSD(amount: number): string {
 export default function TransactionHistoryPage() {
   const { transactions, removeTransaction, displayCurrency } = usePortfolio()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   const sorted = [...transactions].sort((a, b) => b.createdAt - a.createdAt)
 
@@ -25,6 +27,68 @@ export default function TransactionHistoryPage() {
 
   const isKRW = displayCurrency === 'KRW'
 
+  /* ── 모바일: 카드 레이아웃 ── */
+  if (isMobile) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        {sorted.map((tx) => {
+          const rate = tx.exchangeRate || 0
+          const amountDisplay = isKRW && rate > 0 ? formatKRW(tx.amount * rate) : formatUSD(tx.amount)
+          const rateDisplay = rate > 0 ? `${rate.toLocaleString('ko-KR')}원` : '-'
+          const isBuy = tx.type === 'BUY'
+
+          return (
+            <div key={tx.id} style={{
+              background: theme.bg.card, border: `1px solid ${theme.border}`,
+              borderRadius: '10px', padding: '14px 16px',
+            }}>
+              {/* 상단: 날짜 + 구분 + 삭제 */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '12px', color: theme.text.muted }}>{tx.date}</span>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600,
+                    background: isBuy ? theme.upBg : theme.downBg,
+                    color: isBuy ? theme.up : theme.down,
+                  }}>{isBuy ? '매수' : '매도'}</span>
+                </div>
+                <button
+                  onClick={() => removeTransaction(tx.id)}
+                  style={{ padding: '3px 8px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.text.muted, cursor: 'pointer', fontSize: '11px' }}
+                >삭제</button>
+              </div>
+              {/* 종목 */}
+              <div style={{ marginBottom: '8px' }}>
+                <span style={{ fontWeight: 700, color: theme.text.primary, fontSize: '14px' }}>{tx.symbol}</span>
+                <span style={{ marginLeft: '6px', fontSize: '12px', color: theme.text.muted }}>{tx.name}</span>
+              </div>
+              {/* 상세 정보 */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px', fontSize: '12px' }}>
+                <div>
+                  <span style={{ color: theme.text.muted }}>체결가  </span>
+                  <span style={{ color: theme.text.primary }}>${tx.priceAtDate.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div>
+                  <span style={{ color: theme.text.muted }}>수량  </span>
+                  <span style={{ color: theme.text.primary }}>{tx.shares.toFixed(4)}주</span>
+                </div>
+                <div>
+                  <span style={{ color: theme.text.muted }}>거래금액  </span>
+                  <span style={{ color: theme.text.primary }}>{amountDisplay}</span>
+                </div>
+                <div>
+                  <span style={{ color: theme.text.muted }}>환율  </span>
+                  <span style={{ color: theme.text.muted }}>{rateDisplay}</span>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  /* ── PC: 기존 테이블 ── */
   return (
     <div>
       <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>

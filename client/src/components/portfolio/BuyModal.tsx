@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 import { Transaction } from '../../types/portfolio'
 
 interface Props {
@@ -46,6 +47,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
   const [error, setError] = useState<string | null>(null)
   const { addTransaction, accountBalance, currentUSDKRW } = usePortfolio()
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   const isKRW = currency === 'KRW'
 
@@ -246,7 +248,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
         </div>
 
         {/* 금액 / 주수 입력 */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '12px' }}>
           <div>
             <label style={{ fontSize: '13px', color: theme.text.secondary }}>
               투자 금액 ({isKRW ? 'KRW' : 'USD'})

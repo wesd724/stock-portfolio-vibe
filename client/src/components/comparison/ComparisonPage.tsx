@@ -404,59 +404,91 @@ export default function ComparisonPage() {
           {/* ② 지표 비교 테이블 */}
           <div style={sectionCard}>
             <div style={sectionTitle}>지표 비교</div>
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
-                <thead>
-                  <tr>
-                    <td style={{ padding: '6px 12px', color: theme.text.muted, fontWeight: 600, borderBottom: `1px solid ${theme.border}` }}>지표</td>
-                    {symbols.map((s, i) => (
-                      <td key={s.symbol} style={{ padding: '6px 12px', textAlign: 'right', borderBottom: `1px solid ${theme.border}`, fontWeight: 700, color: COLORS[i % COLORS.length] }}>{s.symbol}</td>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    {
-                      label: '현재가', fn: (q: StockQuote) =>
-                        q.price != null ? `$${q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
-                    },
-                    {
-                      label: '등락률', fn: (q: StockQuote) => {
-                        const v = q.changePercent
-                        if (v == null) return '-'
-                        return <span style={{ color: v >= 0 ? theme.up : theme.down }}>{v >= 0 ? '+' : ''}{v.toFixed(2)}%</span>
-                      }
-                    },
-                    { label: '시가총액', fn: (q: StockQuote) => formatNumber(q.marketCap) },
-                    { label: 'P/E', fn: (q: StockQuote) => q.trailingPE?.toFixed(2) ?? '-' },
-                    {
-                      label: '배당수익률', fn: (q: StockQuote) =>
-                        q.dividendYield != null ? `${(q.dividendYield * 100).toFixed(2)}%` : '-'
-                    },
-                    {
-                      label: '52주 최고', fn: (q: StockQuote) =>
-                        q.fiftyTwoWeekHigh != null ? `$${q.fiftyTwoWeekHigh.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
-                    },
-                    {
-                      label: '52주 최저', fn: (q: StockQuote) =>
-                        q.fiftyTwoWeekLow != null ? `$${q.fiftyTwoWeekLow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
-                    },
-                  ].map(({ label, fn }) => (
-                    <tr key={label} style={{ borderBottom: `1px solid ${theme.border}` }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '8px 12px', color: theme.text.muted }}>{label}</td>
-                      {symbols.map((s) => (
-                        <td key={s.symbol} style={{ padding: '8px 12px', textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
-                          {quotesMap[s.symbol] ? fn(quotesMap[s.symbol]) : '-'}
-                        </td>
+            {isMobile ? (
+              /* 모바일: 종목별 카드 */
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {symbols.map((s, i) => {
+                  const q = quotesMap[s.symbol]
+                  const v = q?.changePercent
+                  return (
+                    <div key={s.symbol} style={{ border: `1px solid ${theme.border}`, borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ padding: '8px 12px', background: theme.bg.input, fontWeight: 700, color: COLORS[i % COLORS.length], fontSize: '13px' }}>{s.symbol}</div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0', fontSize: '12px' }}>
+                        {[
+                          { label: '현재가', value: q?.price != null ? `$${q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-' },
+                          { label: '등락률', value: v != null ? `${v >= 0 ? '+' : ''}${v.toFixed(2)}%` : '-', color: v != null ? (v >= 0 ? theme.up : theme.down) : undefined },
+                          { label: '시가총액', value: q ? formatNumber(q.marketCap) : '-' },
+                          { label: 'P/E', value: q?.trailingPE?.toFixed(2) ?? '-' },
+                          { label: '배당수익률', value: q?.dividendYield != null ? `${(q.dividendYield * 100).toFixed(2)}%` : '-' },
+                          { label: '52주 최고', value: q?.fiftyTwoWeekHigh != null ? `$${q.fiftyTwoWeekHigh.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-' },
+                          { label: '52주 최저', value: q?.fiftyTwoWeekLow != null ? `$${q.fiftyTwoWeekLow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-' },
+                        ].map(({ label, value, color }) => (
+                          <div key={label} style={{ padding: '8px 12px', borderTop: `1px solid ${theme.border}` }}>
+                            <div style={{ color: theme.text.muted, marginBottom: '2px' }}>{label}</div>
+                            <div style={{ color: color ?? theme.text.primary, fontWeight: 500 }}>{value}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              /* PC: 기존 테이블 */
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr>
+                      <td style={{ padding: '6px 12px', color: theme.text.muted, fontWeight: 600, borderBottom: `1px solid ${theme.border}` }}>지표</td>
+                      {symbols.map((s, i) => (
+                        <td key={s.symbol} style={{ padding: '6px 12px', textAlign: 'right', borderBottom: `1px solid ${theme.border}`, fontWeight: 700, color: COLORS[i % COLORS.length] }}>{s.symbol}</td>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {[
+                      {
+                        label: '현재가', fn: (q: StockQuote) =>
+                          q.price != null ? `$${q.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
+                      },
+                      {
+                        label: '등락률', fn: (q: StockQuote) => {
+                          const v = q.changePercent
+                          if (v == null) return '-'
+                          return <span style={{ color: v >= 0 ? theme.up : theme.down }}>{v >= 0 ? '+' : ''}{v.toFixed(2)}%</span>
+                        }
+                      },
+                      { label: '시가총액', fn: (q: StockQuote) => formatNumber(q.marketCap) },
+                      { label: 'P/E', fn: (q: StockQuote) => q.trailingPE?.toFixed(2) ?? '-' },
+                      {
+                        label: '배당수익률', fn: (q: StockQuote) =>
+                          q.dividendYield != null ? `${(q.dividendYield * 100).toFixed(2)}%` : '-'
+                      },
+                      {
+                        label: '52주 최고', fn: (q: StockQuote) =>
+                          q.fiftyTwoWeekHigh != null ? `$${q.fiftyTwoWeekHigh.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
+                      },
+                      {
+                        label: '52주 최저', fn: (q: StockQuote) =>
+                          q.fiftyTwoWeekLow != null ? `$${q.fiftyTwoWeekLow.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '-'
+                      },
+                    ].map(({ label, fn }) => (
+                      <tr key={label} style={{ borderBottom: `1px solid ${theme.border}` }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '8px 12px', color: theme.text.muted }}>{label}</td>
+                        {symbols.map((s) => (
+                          <td key={s.symbol} style={{ padding: '8px 12px', textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
+                            {quotesMap[s.symbol] ? fn(quotesMap[s.symbol]) : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
 
           {/* ③ 변동성 비교 */}

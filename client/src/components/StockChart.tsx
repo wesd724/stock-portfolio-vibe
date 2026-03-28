@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { ChartPoint, ChartInterval } from '../types/stock'
 import { useTheme } from '../context/ThemeContext'
+import { useWindowSize } from '../hooks/useWindowSize'
 
 interface Props {
   symbol: string
@@ -63,6 +64,7 @@ export default function StockChart({ symbol, isPositive }: Props) {
 
   useEffect(() => { fetchChart(symbol, interval) }, [symbol, interval])
 
+  const { isMobile } = useWindowSize()
   const color = isPositive ? theme.up : theme.down
   const minVal = data.length ? Math.min(...data.map((d) => d.close)) : 0
   const maxVal = data.length ? Math.max(...data.map((d) => d.close)) : 0
@@ -77,38 +79,41 @@ export default function StockChart({ symbol, isPositive }: Props) {
       marginTop: '12px',
     }}>
       {/* 헤더 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <div style={{ display: 'flex', gap: '6px' }}>
-          {INTERVALS.map((item) => (
+      <div style={{ marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isMobile ? '8px' : '0' }}>
+          <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap' }}>
+            {INTERVALS.map((item) => (
+              <button
+                key={item.value}
+                onClick={() => setInterval(item.value)}
+                style={{
+                  padding: isMobile ? '3px 8px' : '4px 12px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontSize: isMobile ? '12px' : '13px',
+                  background: interval === item.value ? color : theme.bg.input,
+                  color: interval === item.value ? '#fff' : theme.text.secondary,
+                  fontWeight: interval === item.value ? 600 : 400,
+                }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0, marginLeft: '8px' }}>
             <button
-              key={item.value}
-              onClick={() => setInterval(item.value)}
-              style={{
-                padding: '4px 12px',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-                fontSize: '13px',
-                background: interval === item.value ? color : theme.bg.input,
-                color: interval === item.value ? '#fff' : theme.text.secondary,
-                fontWeight: interval === item.value ? 600 : 400,
-              }}
+              onClick={() => fetchChart(symbol, interval, true)}
+              disabled={refreshing || loading}
+              title="새로고침"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
             >
-              {item.label}
+              {refreshing ? '⟳' : '↻'}
             </button>
-          ))}
+            {!isMobile && <span style={{ fontSize: '12px', color: theme.text.muted }}>15분 지연 데이터</span>}
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <button
-            onClick={() => fetchChart(symbol, interval, true)}
-            disabled={refreshing || loading}
-            title="새로고침"
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
-          >
-            {refreshing ? '⟳' : '↻'}
-          </button>
-          <span style={{ fontSize: '12px', color: theme.text.muted }}>15분 지연 데이터</span>
-        </div>
+        {isMobile && <div style={{ fontSize: '11px', color: theme.text.muted }}>15분 지연 데이터</div>}
       </div>
 
       {/* 차트 */}

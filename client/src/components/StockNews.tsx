@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { NewsItem } from '../types/stock'
 import { useTheme } from '../context/ThemeContext'
+import { useWindowSize } from '../hooks/useWindowSize'
 
 interface Props {
   symbol: string
@@ -51,6 +52,7 @@ export default function StockNews({ symbol }: Props) {
   const [refreshing, setRefreshing] = useState(false)
   const [selected, setSelected] = useState<NewsItem | null>(null)
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   function loadNews(translate: boolean, isRefresh = false) {
     const url = translate ? `/api/stocks/news/${symbol}?translate=true` : `/api/stocks/news/${symbol}`
@@ -125,7 +127,7 @@ export default function StockNews({ symbol }: Props) {
         {loading ? (
           <p style={{ color: theme.text.muted, fontSize: '14px' }}>불러오는 중...</p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr', gap: '24px' }}>
             <div>
               <div style={{ fontSize: '12px', color: theme.text.muted, marginBottom: '10px', fontWeight: 600 }}>
                 Yahoo Finance 제공

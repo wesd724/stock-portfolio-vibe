@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom'
 import { MarketItem } from '../../types/stock'
 import MarketCard from './MarketCard'
 import { useTheme } from '../../context/ThemeContext'
+import { useWindowSize } from '../../hooks/useWindowSize'
 
 interface PutCallItem { symbol: string; ratio: number | null }
 
@@ -14,6 +15,7 @@ export default function MarketOverview() {
   const [showGuide, setShowGuide] = useState(false)
   const [showPutCallGuide, setShowPutCallGuide] = useState(false)
   const { theme } = useTheme()
+  const { isMobile } = useWindowSize()
 
   function fetchData(isRefresh = false) {
     if (isRefresh) setRefreshing(true)
@@ -62,7 +64,7 @@ export default function MarketOverview() {
   return (
     <>
       <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <h2 style={{ fontSize: '16px', fontWeight: 600, color: theme.text.primary }}>시장 현황</h2>
             <button
@@ -74,18 +76,31 @@ export default function MarketOverview() {
                 cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
               }}
             >?</button>
+            {isMobile && (
+              <button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                title="새로고침"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
+              >
+                {refreshing ? '⟳' : '↻'}
+              </button>
+            )}
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <button
-              onClick={() => fetchData(true)}
-              disabled={refreshing}
-              title="새로고침"
-              style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
-            >
-              {refreshing ? '⟳' : '↻'}
-            </button>
-            <span style={{ fontSize: '12px', color: theme.text.muted }}>15분 지연 데이터</span>
-          </div>
+          {!isMobile && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button
+                onClick={() => fetchData(true)}
+                disabled={refreshing}
+                title="새로고침"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: theme.text.muted, fontSize: '16px', padding: '2px' }}
+              >
+                {refreshing ? '⟳' : '↻'}
+              </button>
+              <span style={{ fontSize: '12px', color: theme.text.muted }}>15분 지연 데이터</span>
+            </div>
+          )}
+          {isMobile && <span style={{ fontSize: '11px', color: theme.text.muted, width: '100%' }}>15분 지연 데이터</span>}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '12px' }}>
