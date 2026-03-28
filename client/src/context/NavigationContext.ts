@@ -1,13 +1,37 @@
-import { create } from 'zustand'
+import { useNavigate, useLocation } from 'react-router-dom'
 
 export type Page = 'home' | 'portfolio' | 'transactions' | 'compare' | 'screener' | 'favorites' | 'help' | 'investment'
 
-interface NavigationStore {
-  currentPage: Page
-  setPage: (page: Page) => void
+const pageToPath: Record<Page, string> = {
+  home: '/',
+  portfolio: '/portfolio',
+  transactions: '/transactions',
+  compare: '/compare',
+  screener: '/screener',
+  favorites: '/favorites',
+  help: '/help',
+  investment: '/investment',
 }
 
-export const useNavigation = create<NavigationStore>((set) => ({
-  currentPage: 'home',
-  setPage: (page) => set({ currentPage: page }),
-}))
+const pathToPage: Record<string, Page> = {
+  '/': 'home',
+  '/portfolio': 'portfolio',
+  '/transactions': 'transactions',
+  '/compare': 'compare',
+  '/screener': 'screener',
+  '/favorites': 'favorites',
+  '/help': 'help',
+  '/investment': 'investment',
+}
+
+export function useNavigation() {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const currentPage = pathToPage[location.pathname] ?? 'home'
+
+  const setPage = (page: Page) => {
+    navigate(pageToPath[page])
+  }
+
+  return { currentPage, setPage }
+}
