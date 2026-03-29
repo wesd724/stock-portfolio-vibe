@@ -283,10 +283,11 @@ export default function BuyModal({ symbol, name, stockCurrency = 'USD', onClose 
         {error && <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>{error}</p>}
         {insufficientBalance && amountNum > 0 && priceInfo && (
           <p style={{ color: theme.down, fontSize: '13px', marginBottom: '12px' }}>
-            잔액 부족 — 필요{' '}
-            {isKRW ? formatKRW(amountUSD * priceInfo.exchangeRate) : formatUSD(amountUSD)}
-            {' '}/ 보유{' '}
-            {isKRW ? formatKRW(accountBalance * priceInfo.exchangeRate) : formatUSD(accountBalance)}
+            잔액 부족 —{' '}
+            {isKRW
+              ? formatKRW((amountUSD - accountBalance) * priceInfo.exchangeRate)
+              : formatUSD(amountUSD - accountBalance)}{' '}
+            추가 필요
           </p>
         )}
 

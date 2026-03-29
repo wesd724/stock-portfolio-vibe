@@ -1,3 +1,5 @@
+import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { useTheme } from '../../context/ThemeContext'
 import { useWindowSize } from '../../hooks/useWindowSize'
@@ -14,14 +16,26 @@ export default function TransactionHistoryPage() {
   const { transactions, removeTransaction, displayCurrency } = usePortfolio()
   const { theme } = useTheme()
   const { isMobile } = useWindowSize()
+  const [confirmId, setConfirmId] = useState<string | null>(null)
 
   const sorted = [...transactions].sort((a, b) => b.createdAt - a.createdAt)
 
+  const confirmModal = confirmId
+    ? <ConfirmDeleteModal
+        onConfirm={() => { removeTransaction(confirmId); setConfirmId(null) }}
+        onCancel={() => setConfirmId(null)}
+        theme={theme}
+      />
+    : null
+
   if (sorted.length === 0) {
     return (
-      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
-        거래 내역이 없습니다.
-      </div>
+      <>
+        {confirmModal}
+        <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
+          거래 내역이 없습니다.
+        </div>
+      </>
     )
   }
 
@@ -30,6 +44,8 @@ export default function TransactionHistoryPage() {
   /* ── 모바일: 카드 레이아웃 ── */
   if (isMobile) {
     return (
+      <>
+      {confirmModal}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {sorted.map((tx) => {
           const rate = tx.exchangeRate || 0
@@ -53,7 +69,7 @@ export default function TransactionHistoryPage() {
                   }}>{isBuy ? '매수' : '매도'}</span>
                 </div>
                 <button
-                  onClick={() => removeTransaction(tx.id)}
+                  onClick={() => setConfirmId(tx.id)}
                   style={{ padding: '3px 8px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.text.muted, cursor: 'pointer', fontSize: '11px' }}
                 >삭제</button>
               </div>
@@ -85,11 +101,14 @@ export default function TransactionHistoryPage() {
           )
         })}
       </div>
+      </>
     )
   }
 
   /* ── PC: 기존 테이블 ── */
   return (
+    <>
+    {confirmModal}
     <div>
       <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', overflow: 'hidden' }}>
         <div style={{ overflowX: 'auto' }}>
@@ -131,7 +150,7 @@ export default function TransactionHistoryPage() {
                     <td style={{ padding: '12px 16px', textAlign: 'right', color: theme.text.muted, whiteSpace: 'nowrap' }}>{rateDisplay}</td>
                     <td style={{ padding: '12px 16px', textAlign: 'right' }}>
                       <button
-                        onClick={() => removeTransaction(tx.id)}
+                        onClick={() => setConfirmId(tx.id)}
                         style={{ padding: '4px 10px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.text.muted, cursor: 'pointer', fontSize: '12px' }}
                       >
                         삭제
@@ -145,5 +164,31 @@ export default function TransactionHistoryPage() {
         </div>
       </div>
     </div>
+    </>
+  )
+}
+
+function ConfirmDeleteModal({ onConfirm, onCancel, theme }: { onConfirm: () => void; onCancel: () => void; theme: any }) {
+  return createPortal(
+    <div
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onCancel() }}
+      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+    >
+      <div style={{ background: theme.bg.card, border: `1px solid ${theme.border}`, borderRadius: '12px', padding: '28px', width: '100%', maxWidth: '320px' }}>
+        <h2 style={{ fontSize: '16px', fontWeight: 700, color: theme.text.primary, marginBottom: '10px' }}>거래 내역 삭제</h2>
+        <p style={{ fontSize: '13px', color: theme.text.secondary, marginBottom: '24px' }}>이 거래 내역을 삭제하시겠습니까?</p>
+        <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+          <button
+            onClick={onCancel}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: `1px solid ${theme.border}`, background: 'transparent', color: theme.text.secondary, cursor: 'pointer', fontSize: '14px' }}
+          >취소</button>
+          <button
+            onClick={onConfirm}
+            style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: theme.down, color: '#fff', cursor: 'pointer', fontSize: '14px', fontWeight: 600 }}
+          >삭제</button>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
