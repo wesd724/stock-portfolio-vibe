@@ -41,6 +41,17 @@ function getNextInvestDate(current: Date, freq: Frequency): Date {
   return d
 }
 
+function countInvestDates(startDate: string, endDate: string, freq: Frequency): number {
+  const endMs = new Date(endDate).getTime()
+  let count = 0
+  let cur = new Date(startDate)
+  while (cur.getTime() <= endMs) {
+    count++
+    cur = getNextInvestDate(cur, freq)
+  }
+  return count
+}
+
 function findNearestPrice(points: RawPoint[], targetMs: number): number | null {
   let best: RawPoint | null = null
   for (const p of points) {
@@ -172,6 +183,7 @@ export default function InvestmentPage() {
   const [bhAmount, setBhAmount] = useState('10000')
 
   const [chartData, setChartData] = useState<ChartPoint[]>([])
+  const [dcaInvestCount, setDcaInvestCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -237,6 +249,7 @@ export default function InvestmentPage() {
         const amountUSD = toUSD(dcaAmount)
         if (amountUSD <= 0) { setError('투자 금액을 입력해주세요.'); return }
         setChartData(computeDCA(raw, from, to, dcaFreq, amountUSD))
+        setDcaInvestCount(countInvestDates(from, to, dcaFreq))
       } else {
         const amountUSD = toUSD(bhAmount)
         if (amountUSD <= 0) { setError('투자 금액을 입력해주세요.'); return }
@@ -537,6 +550,7 @@ export default function InvestmentPage() {
                 <>
                   <div>투자 주기: <strong style={{ color: theme.text.primary }}>{FREQ_LABELS.find(f => f.value === dcaFreq)?.label}</strong></div>
                   <div>1회 투자금액: <strong style={{ color: theme.text.primary }}>{fmt(toUSD(dcaAmount))}</strong></div>
+                  <div>총 투자 횟수: <strong style={{ color: theme.text.primary }}>{dcaInvestCount}회</strong></div>
                 </>
               )}
               <div>총 투자 원금: <strong style={{ color: theme.text.primary }}>{fmt(totalInvested)}</strong></div>
