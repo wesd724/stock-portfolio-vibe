@@ -1,4 +1,14 @@
 import { useState } from 'react'
+
+function generateId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.random() * 16 | 0
+    return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16)
+  })
+}
 import { createPortal } from 'react-dom'
 import { usePortfolio } from '../../context/PortfolioContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -152,7 +162,7 @@ export default function BuyModal({ symbol, name, stockCurrency = 'USD', onClose 
     // priceAtDate는 항상 USD로 저장
     const priceAtDateUSD = isNativeKRW ? priceInfo.price / priceInfo.exchangeRate : priceInfo.price
     const tx: Transaction = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       type: 'BUY',
       symbol,
       name,
