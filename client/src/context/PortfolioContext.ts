@@ -63,7 +63,7 @@ export const usePortfolio = create<PortfolioStore>((set, get) => ({
     const newBalance = get().accountBalance + delta
     saveBalance(newBalance)
     set({ transactions, accountBalance: newBalance })
-    await get().refreshCurrentPrices()
+    get().refreshCurrentPrices().catch(() => {})
   },
 
   removeTransaction: async (id) => {
@@ -79,7 +79,7 @@ export const usePortfolio = create<PortfolioStore>((set, get) => ({
     await storage.remove(id)
     const transactions = get().transactions.filter((t) => t.id !== id)
     set({ transactions })
-    await get().refreshCurrentPrices()
+    get().refreshCurrentPrices().catch(() => {})
   },
 
   refreshCurrentPrices: async () => {

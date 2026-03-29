@@ -143,9 +143,14 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
       currency,
       createdAt: Date.now(),
     }
-    await addTransaction(tx)
-    setSubmitting(false)
-    onClose()
+    try {
+      await addTransaction(tx)
+      onClose()
+    } catch {
+      setError('처리 중 오류가 발생했습니다.')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   const sharesNum = parseInput(sharesRaw)
