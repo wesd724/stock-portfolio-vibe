@@ -174,12 +174,14 @@ export default function StockCard({ quote }: Props) {
                 return px(currentPrice)
               })()}
             </div>
-            <button
-              onClick={() => setShowBuy(true)}
-              style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
-            >
-              매수
-            </button>
+            {!isMarketOverviewSymbol && (
+              <button
+                onClick={() => setShowBuy(true)}
+                style={{ padding: '6px 14px', borderRadius: '8px', border: 'none', background: theme.up, color: '#fff', cursor: 'pointer', fontSize: '13px', fontWeight: 600 }}
+              >
+                매수
+              </button>
+            )}
             {!isMarketOverviewSymbol && (
               <button
                 onClick={() => toggle(quote.symbol)}

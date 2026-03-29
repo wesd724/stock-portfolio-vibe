@@ -46,7 +46,7 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const { addTransaction, accountBalance, currentUSDKRW } = usePortfolio()
-  const { theme } = useTheme()
+  const { theme, isDark } = useTheme()
   const { isMobile } = useWindowSize()
 
   const isKRW = currency === 'KRW'
@@ -196,11 +196,21 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
         <div style={{ display: 'flex', gap: '8px', marginTop: '6px', marginBottom: '16px' }}>
           <input
             type="date" value={date} max={today} min="1980-01-01"
-            onChange={(e) => { setDate(e.target.value); setPriceInfo(null); setSharesRaw(''); setAmountRaw('') }}
-            style={{ ...inputStyle, flex: 1, colorScheme: 'dark' }}
+            onChange={(e) => {
+              const val = e.target.value
+              setDate(val)
+              setPriceInfo(null)
+              setSharesRaw('')
+              setAmountRaw('')
+              if (val) {
+                const day = new Date(val + 'T00:00:00').getDay()
+                setError(day === 0 || day === 6 ? '주말은 거래일이 아닙니다.' : null)
+              }
+            }}
+            style={{ ...inputStyle, flex: 1, colorScheme: isDark ? 'dark' : 'light' }}
           />
           <button
-            onClick={fetchPrice} disabled={loadingPrice || !date}
+            onClick={fetchPrice} disabled={loadingPrice || !date || [0, 6].includes(new Date(date + 'T00:00:00').getDay())}
             style={{ padding: '8px 14px', borderRadius: '8px', border: 'none', background: theme.border, color: theme.text.primary, cursor: 'pointer', fontSize: '13px' }}
           >
             {loadingPrice ? '조회 중...' : '가격 조회'}
