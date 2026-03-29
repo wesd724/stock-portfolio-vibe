@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { StockQuote } from '../types/stock'
 import { useStock } from '../context/StockContext'
 import { useTheme } from '../context/ThemeContext'
@@ -74,7 +74,7 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
 export default function StockCard({ quote }: Props) {
   const [showBuy, setShowBuy] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
-  const [viewCurrency, setViewCurrency] = useState<'USD' | 'KRW'>('USD')
+  const [viewCurrency, setViewCurrency] = useState<'USD' | 'KRW'>(() => quote.currency === 'KRW' ? 'KRW' : 'USD')
   const { refreshQuote } = useStock()
   const { theme } = useTheme()
   const { toggle, isFavorite } = useFavorites()
@@ -84,13 +84,41 @@ export default function StockCard({ quote }: Props) {
   const isMarketOverviewSymbol = MARKET_OVERVIEW_SYMBOLS.has(quote.symbol)
   const favorited = isFavorite(quote.symbol)
   const isKRW = viewCurrency === 'KRW'
+  const isNativeKRW = quote.currency === 'KRW'
   const rate = currentUSDKRW
 
-  function px(usd: number | undefined) {
-    if (usd == null) return '-'
+  // 종목이 바뀌면 표시 통화 리셋
+  useEffect(() => {
+    setViewCurrency(quote.currency === 'KRW' ? 'KRW' : 'USD')
+  }, [quote.symbol, quote.currency])
+
+  function px(value: number | undefined) {
+    if (value == null) return '-'
+    if (isNativeKRW) {
+      // value가 이미 KRW
+      return isKRW
+        ? `₩ ${Math.round(value).toLocaleString('ko-KR')}`
+        : `$ ${(value / rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    }
+    // value가 USD
     return isKRW
-      ? `₩ ${Math.round(usd * rate).toLocaleString('ko-KR')}`
-      : `${quote.currency} ${usd.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+      ? `₩ ${Math.round(value * rate).toLocaleString('ko-KR')}`
+      : `${quote.currency} ${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+  }
+
+  function formatChangePx(change: number | undefined, pct: number | undefined) {
+    if (change == null || pct == null) return '-'
+    const sign = change >= 0 ? '+' : ''
+    if (isNativeKRW) {
+      // change가 이미 KRW
+      return isKRW
+        ? `${sign}₩${Math.round(Math.abs(change)).toLocaleString('ko-KR')} (${sign}${pct.toFixed(2)}%)`
+        : `${sign}$ ${(Math.abs(change) / rate).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${sign}${pct.toFixed(2)}%)`
+    }
+    // change가 USD
+    return isKRW
+      ? formatChangeKRW(change, pct, rate)
+      : formatChange(change, pct)
   }
 
   async function handleRefresh() {
@@ -136,9 +164,7 @@ export default function StockCard({ quote }: Props) {
               if (change == null && pct == null) return null
               return (
                 <span style={{ fontSize: '13px', fontWeight: 600, color: pos ? theme.up : theme.down }}>
-                  {isKRW
-                    ? formatChangeKRW(change, pct, rate)
-                    : formatChange(change, pct)}
+                  {formatChangePx(change, pct)}
                 </span>
               )
             })()}
@@ -207,7 +233,7 @@ export default function StockCard({ quote }: Props) {
               본장 종가 {px(quote.price)}
             </div>
           )}
-          {isKRW && (
+          {(isNativeKRW !== isKRW) && (
             <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '2px', textAlign: isMobile ? 'left' : 'right' }}>
               적용 환율 {rate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원/달러
             </div>
@@ -240,7 +266,9 @@ export default function StockCard({ quote }: Props) {
         marginTop: '8px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[
-          { label: '시가총액', value: isKRW ? `₩${formatNumberKRW(quote.marketCap * rate)}` : formatNumber(quote.marketCap) },
+          { label: '시가총액', value: isKRW
+            ? `₩${formatNumberKRW(isNativeKRW ? quote.marketCap : quote.marketCap * rate)}`
+            : (isNativeKRW ? `$ ${formatNumber(Math.round(quote.marketCap / rate))}` : formatNumber(quote.marketCap)) },
           { label: 'P/E', value: quote.trailingPE?.toFixed(2) ?? '-' },
           { label: '배당수익률', value: quote.dividendYield != null ? `${(quote.dividendYield * 100).toFixed(2)}%` : '-' },
           { label: '52주 범위', value: isKRW
@@ -258,7 +286,7 @@ export default function StockCard({ quote }: Props) {
       <BuyModal
         symbol={quote.symbol}
         name={quote.name}
-        initialCurrency={viewCurrency}
+        stockCurrency={quote.currency}
         onClose={() => setShowBuy(false)}
       />
     )}

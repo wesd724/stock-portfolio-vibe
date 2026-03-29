@@ -8,7 +8,7 @@ import { Transaction } from '../../types/portfolio'
 interface Props {
   symbol: string
   name: string
-  initialCurrency?: 'USD' | 'KRW'
+  stockCurrency?: string  // 종목 원래 통화 ('USD' | 'KRW')
   onClose: () => void
 }
 
@@ -36,9 +36,10 @@ function parseInput(value: string): number {
   return parseFloat(value.replace(/,/g, '')) || 0
 }
 
-export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClose }: Props) {
+export default function BuyModal({ symbol, name, stockCurrency = 'USD', onClose }: Props) {
+  const isNativeKRW = stockCurrency === 'KRW'
   const [date, setDate] = useState(today)
-  const [currency, setCurrency] = useState<'KRW' | 'USD'>(initialCurrency)
+  const [currency, setCurrency] = useState<'KRW' | 'USD'>(isNativeKRW ? 'KRW' : 'USD')
   const [amountRaw, setAmountRaw] = useState('')
   const [sharesRaw, setSharesRaw] = useState('')
   const [priceInfo, setPriceInfo] = useState<{ price: number; actualDate: string; exchangeRate: number; isCurrentPrice?: boolean } | null>(null)
@@ -53,17 +54,35 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
 
   function calcSharesFromAmount(amountNum: number, info: typeof priceInfo): string {
     if (!info || amountNum <= 0) return ''
-    const shares = isKRW
-      ? (amountNum / info.exchangeRate) / info.price
-      : amountNum / info.price
+    let shares: number
+    if (isNativeKRW) {
+      // info.price가 KRW
+      shares = isKRW
+        ? amountNum / info.price                          // KRW / KRW
+        : (amountNum * info.exchangeRate) / info.price   // USD * rate / KRW
+    } else {
+      // info.price가 USD
+      shares = isKRW
+        ? (amountNum / info.exchangeRate) / info.price   // KRW / rate / USD
+        : amountNum / info.price                          // USD / USD
+    }
     return fmtInput(shares.toFixed(6).replace(/\.?0+$/, ''), false)
   }
 
   function calcAmountFromShares(sharesNum: number, info: typeof priceInfo): string {
     if (!info || sharesNum <= 0) return ''
-    const amount = isKRW
-      ? sharesNum * info.price * info.exchangeRate
-      : sharesNum * info.price
+    let amount: number
+    if (isNativeKRW) {
+      // info.price가 KRW
+      amount = isKRW
+        ? sharesNum * info.price                          // shares * KRW = KRW
+        : sharesNum * info.price / info.exchangeRate      // shares * KRW / rate = USD
+    } else {
+      // info.price가 USD
+      amount = isKRW
+        ? sharesNum * info.price * info.exchangeRate      // shares * USD * rate = KRW
+        : sharesNum * info.price                          // shares * USD = USD
+    }
     return fmtInput(isKRW ? Math.round(amount).toString() : amount.toFixed(2), isKRW)
   }
 
@@ -130,17 +149,20 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
 
     setSubmitting(true)
     const amountUSD = isKRW ? amountNum / priceInfo.exchangeRate : amountNum
+    // priceAtDate는 항상 USD로 저장
+    const priceAtDateUSD = isNativeKRW ? priceInfo.price / priceInfo.exchangeRate : priceInfo.price
     const tx: Transaction = {
       id: crypto.randomUUID(),
       type: 'BUY',
       symbol,
       name,
       date: priceInfo.actualDate,
-      priceAtDate: priceInfo.price,
+      priceAtDate: priceAtDateUSD,
       shares: sharesNum,
       amount: amountUSD,
       exchangeRate: priceInfo.exchangeRate,
       currency,
+      stockCurrency,
       createdAt: Date.now(),
     }
     try {
@@ -227,9 +249,19 @@ export default function BuyModal({ symbol, name, initialCurrency = 'USD', onClos
           <div style={{ background: theme.bg.input, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ marginBottom: '4px' }}>
               <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} {priceInfo.isCurrentPrice ? '현재가' : '종가'}  </span>
-              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
-              <span style={{ color: theme.text.muted }}>  ≈  </span>
-              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
+              {isNativeKRW ? (
+                <>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price)}</span>
+                  <span style={{ color: theme.text.muted }}>  ≈  </span>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price / priceInfo.exchangeRate)}</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
+                  <span style={{ color: theme.text.muted }}>  ≈  </span>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
+                </>
+              )}
             </div>
             <div>
               <span style={{ color: theme.text.muted }}>환율  </span>

@@ -9,6 +9,7 @@ export interface Transaction {
   amount: number        // USD amount
   exchangeRate: number  // USDKRW at transaction date
   currency: 'USD' | 'KRW'  // what currency user used for input
+  stockCurrency?: string    // 종목 원래 통화 ('USD' | 'KRW'), 없으면 'USD'로 간주
   createdAt: number
 }
 

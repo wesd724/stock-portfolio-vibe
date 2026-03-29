@@ -25,10 +25,12 @@ export default function HoldingItem({ holding }: Props) {
   const { theme } = useTheme()
   const { transactions, displayCurrency } = usePortfolio()
 
-  const earliestBuyDate = transactions
-    .filter((t) => t.symbol === holding.symbol && t.type === 'BUY')
+  const symbolTxs = transactions.filter((t) => t.symbol === holding.symbol)
+  const earliestBuyDate = symbolTxs
+    .filter((t) => t.type === 'BUY')
     .map((t) => t.date)
     .sort()[0] ?? '1980-01-01'
+  const stockCurrency = symbolTxs[0]?.stockCurrency ?? 'USD'
 
   const isKRW = displayCurrency === 'KRW'
   const gainLoss = isKRW ? holding.gainLossKrw : holding.gainLoss
@@ -83,6 +85,7 @@ export default function HoldingItem({ holding }: Props) {
           name={holding.name}
           maxShares={holding.totalShares}
           minDate={earliestBuyDate}
+          stockCurrency={stockCurrency}
           onClose={() => setShowSell(false)}
         />
       )}

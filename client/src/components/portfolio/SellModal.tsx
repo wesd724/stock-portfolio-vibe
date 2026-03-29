@@ -10,6 +10,7 @@ interface Props {
   name: string
   maxShares: number
   minDate: string
+  stockCurrency?: string  // 종목 원래 통화 ('USD' | 'KRW')
   onClose: () => void
 }
 
@@ -36,7 +37,8 @@ function parseInput(value: string): number {
   return parseFloat(value.replace(/,/g, '')) || 0
 }
 
-export default function SellModal({ symbol, name, maxShares, minDate, onClose }: Props) {
+export default function SellModal({ symbol, name, maxShares, minDate, stockCurrency = 'USD', onClose }: Props) {
+  const isNativeKRW = stockCurrency === 'KRW'
   const [date, setDate] = useState(today)
   const [sharesRaw, setSharesRaw] = useState('')
   const [amountRaw, setAmountRaw] = useState('')
@@ -50,12 +52,19 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
 
   function calcAmountFromShares(sharesNum: number, info: typeof priceInfo): string {
     if (!info || sharesNum <= 0) return ''
-    return fmtInput(Math.round(sharesNum * info.price * info.exchangeRate).toString(), true)
+    // 금액은 KRW로 표시
+    const amountKRW = isNativeKRW
+      ? sharesNum * info.price                          // shares * KRW price = KRW
+      : sharesNum * info.price * info.exchangeRate      // shares * USD price * rate = KRW
+    return fmtInput(Math.round(amountKRW).toString(), true)
   }
 
   function calcSharesFromAmount(amountNum: number, info: typeof priceInfo): string {
     if (!info || amountNum <= 0) return ''
-    const shares = amountNum / (info.price * info.exchangeRate)
+    // amountNum은 KRW
+    const shares = isNativeKRW
+      ? amountNum / info.price                          // KRW / KRW price
+      : amountNum / (info.price * info.exchangeRate)    // KRW / (USD price * rate)
     return fmtInput(shares.toFixed(6).replace(/\.?0+$/, ''), false)
   }
 
@@ -122,17 +131,20 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
     if (sharesNum <= 0 || sharesNum > maxShares + 1e-9) return
 
     setSubmitting(true)
+    // priceAtDate와 amount는 항상 USD로 저장
+    const priceAtDateUSD = isNativeKRW ? priceInfo.price / priceInfo.exchangeRate : priceInfo.price
     const tx: Transaction = {
       id: crypto.randomUUID(),
       type: 'SELL',
       symbol,
       name,
       date: priceInfo.actualDate,
-      priceAtDate: priceInfo.price,
+      priceAtDate: priceAtDateUSD,
       shares: sharesNum,
-      amount: priceInfo.price * sharesNum,
+      amount: priceAtDateUSD * sharesNum,
       exchangeRate: priceInfo.exchangeRate,
       currency: 'KRW',
+      stockCurrency,
       createdAt: Date.now(),
     }
     try {
@@ -195,9 +207,19 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
           <div style={{ background: theme.bg.input, borderRadius: '8px', padding: '12px', marginBottom: '16px', fontSize: '13px' }}>
             <div style={{ marginBottom: '4px' }}>
               <span style={{ color: theme.text.muted }}>{priceInfo.actualDate} {priceInfo.isCurrentPrice ? '현재가' : '종가'}  </span>
-              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
-              <span style={{ color: theme.text.muted }}>  ≈  </span>
-              <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
+              {isNativeKRW ? (
+                <>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price)}</span>
+                  <span style={{ color: theme.text.muted }}>  ≈  </span>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price / priceInfo.exchangeRate)}</span>
+                </>
+              ) : (
+                <>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatUSD(priceInfo.price)}</span>
+                  <span style={{ color: theme.text.muted }}>  ≈  </span>
+                  <span style={{ color: theme.text.primary, fontWeight: 600 }}>{formatKRW(priceInfo.price * priceInfo.exchangeRate)}</span>
+                </>
+              )}
             </div>
             <div>
               <span style={{ color: theme.text.muted }}>환율  </span>
@@ -243,7 +265,11 @@ export default function SellModal({ symbol, name, maxShares, minDate, onClose }:
         {/* 환산 미리보기 */}
         {priceInfo && sharesNum > 0 && amountNum > 0 && (
           <div style={{ marginTop: '10px', fontSize: '12px', color: theme.text.muted }}>
-            ≈ <span style={{ color: theme.text.secondary }}>{formatUSD(sharesNum * priceInfo.price)}</span>
+            ≈ <span style={{ color: theme.text.secondary }}>
+              {isNativeKRW
+                ? formatUSD(sharesNum * priceInfo.price / priceInfo.exchangeRate)
+                : formatUSD(sharesNum * priceInfo.price)}
+            </span>
             <span style={{ color: theme.text.muted }}> (USD 기준)</span>
           </div>
         )}

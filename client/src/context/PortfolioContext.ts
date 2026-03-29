@@ -102,7 +102,9 @@ export const usePortfolio = create<PortfolioStore>((set, get) => ({
     const currentPrices: Record<string, number> = {}
     priceResults.forEach((result, i) => {
       if (result.status === 'fulfilled') {
-        currentPrices[symbols[i]] = result.value.price
+        const q = result.value
+        // KRW 종목은 USD로 환산해서 저장 (내부 계산은 항상 USD 기준)
+        currentPrices[symbols[i]] = q.currency === 'KRW' ? q.price / currentUSDKRW : q.price
       }
     })
 
