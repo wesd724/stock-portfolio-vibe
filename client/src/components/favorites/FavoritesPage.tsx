@@ -31,8 +31,17 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
 const GRID_COLS = '80px 1fr 120px 160px 100px 88px 40px'
 const GRID_COLS_REORDER = '24px 80px 1fr 120px 160px 100px 88px 40px'
 const GRID_MIN_WIDTH = '630px'
-// 모바일: 티커 | 현재가 | 등락률 | 상태 | ★
+// 모바일: 티커 | 종목명 | 현재가 | 등락률 | ★
 const GRID_COLS_MOBILE = '64px 1fr 72px 56px 32px'
+// 모바일 순서변경: 티커 | 종목명 | 현재가 | ↑ | ↓
+const GRID_COLS_MOBILE_REORDER = '64px 1fr 72px 28px 28px'
+
+function moveItem<T>(arr: T[], from: number, to: number): T[] {
+  const result = [...arr]
+  const [item] = result.splice(from, 1)
+  result.splice(to, 0, item)
+  return result
+}
 
 export default function FavoritesPage() {
   const { groups, toggle, addGroup, removeGroup, renameGroup, moveToGroup, reorderSymbols, reorderGroups } = useFavorites()
@@ -175,7 +184,9 @@ export default function FavoritesPage() {
           {/* 컬럼 헤더 */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+            gridTemplateColumns: isMobile
+              ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
+              : (reordering ? GRID_COLS_REORDER : GRID_COLS),
             ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
             padding: isMobile ? '8px 14px' : '8px 20px',
             fontSize: '11px',
@@ -187,7 +198,7 @@ export default function FavoritesPage() {
             <span>종목명</span>
             <span style={{ textAlign: 'right' }}>현재가</span>
             {isMobile ? (
-              <span style={{ textAlign: 'right' }}>등락률</span>
+              reordering ? <><span /><span /></> : <span style={{ textAlign: 'right' }}>등락률</span>
             ) : (
               <>
                 <span style={{ textAlign: 'right' }}>본장 등락</span>
@@ -195,7 +206,7 @@ export default function FavoritesPage() {
                 <span style={{ textAlign: 'center' }}>그룹 이동</span>
               </>
             )}
-            <span />
+            {(!isMobile || !reordering) && <span />}
           </div>
 
           {/* 그룹 섹션 */}
@@ -223,9 +234,9 @@ export default function FavoritesPage() {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
-                  cursor: reordering ? 'grab' : 'default',
+                  cursor: reordering && !isMobile ? 'grab' : 'default',
                 }}>
-                {reordering && <span style={{ color: theme.text.muted, fontSize: '14px', userSelect: 'none', flexShrink: 0 }}>≡</span>}
+                {reordering && !isMobile && <span style={{ color: theme.text.muted, fontSize: '14px', userSelect: 'none', flexShrink: 0 }}>≡</span>}
                 {editingGroupId === group.id ? (
                   <>
                     <input
@@ -253,17 +264,33 @@ export default function FavoritesPage() {
                     <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text.primary }}>{group.name}</span>
                     <span style={{ fontSize: '11px', color: theme.text.muted }}>({group.symbols.length}개)</span>
                     <div style={{ flex: 1 }} />
-                    <button
-                      onClick={() => { setEditingGroupId(group.id); setEditingName(group.name) }}
-                      style={btnBase}
-                      title="그룹명 변경"
-                    >이름 변경</button>
-                    {groups.length > 1 && (
+                    {(!isMobile || !reordering) && (
+                      <button
+                        onClick={() => { setEditingGroupId(group.id); setEditingName(group.name) }}
+                        style={btnBase}
+                        title="그룹명 변경"
+                      >이름 변경</button>
+                    )}
+                    {(!isMobile || !reordering) && groups.length > 1 && (
                       <button
                         onClick={() => removeGroup(group.id)}
                         style={btnBase}
                         title="그룹 삭제"
                       >삭제</button>
+                    )}
+                    {isMobile && reordering && (
+                      <>
+                        <button
+                          disabled={groupIdx === 0}
+                          onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx - 1))}
+                          style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: groupIdx === 0 ? 0.3 : 1 }}
+                        >↑</button>
+                        <button
+                          disabled={groupIdx === groups.length - 1}
+                          onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx + 1))}
+                          style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: groupIdx === groups.length - 1 ? 0.3 : 1 }}
+                        >↓</button>
+                      </>
                     )}
                   </>
                 )}
@@ -302,7 +329,9 @@ export default function FavoritesPage() {
                     }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+                      gridTemplateColumns: isMobile
+                        ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
+                        : (reordering ? GRID_COLS_REORDER : GRID_COLS),
                       ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
                       padding: isMobile ? '12px 14px' : '14px 20px',
                       fontSize: '13px',
@@ -310,16 +339,22 @@ export default function FavoritesPage() {
                       borderBottom: `1px solid ${theme.border}`,
                       alignItems: 'center',
                       background: isDragTarget ? theme.bg.hover : 'transparent',
-                      cursor: reordering ? 'grab' : 'default',
+                      cursor: reordering && !isMobile ? 'grab' : 'default',
                     }}>
                     {!isMobile && reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
                     <span>{sym}</span>
                     <span>로드 실패</span>
-                    <span /><span />
-                    <button
-                      onClick={(e) => { e.stopPropagation(); toggle(sym) }}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0 }}
-                    >★</button>
+                    {isMobile && reordering ? (
+                      <>
+                        <button disabled={idx === 0} onClick={(e) => { e.stopPropagation(); idx > 0 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx - 1)) }} style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === 0 ? 0.3 : 1, justifySelf: 'center' }}>↑</button>
+                        <button disabled={idx === group.symbols.length - 1} onClick={(e) => { e.stopPropagation(); idx < group.symbols.length - 1 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx + 1)) }} style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === group.symbols.length - 1 ? 0.3 : 1, justifySelf: 'center' }}>↓</button>
+                      </>
+                    ) : (
+                      <>
+                        <span /><span />
+                        <button onClick={(e) => { e.stopPropagation(); toggle(sym) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0 }}>★</button>
+                      </>
+                    )}
                   </div>
                 )
 
@@ -347,12 +382,14 @@ export default function FavoritesPage() {
                     onClick={() => { if (!reordering) handleRowClick(q) }}
                     style={{
                       display: 'grid',
-                      gridTemplateColumns: isMobile ? GRID_COLS_MOBILE : (reordering ? GRID_COLS_REORDER : GRID_COLS),
+                      gridTemplateColumns: isMobile
+                        ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
+                        : (reordering ? GRID_COLS_REORDER : GRID_COLS),
                       ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
                       padding: isMobile ? '12px 14px' : '14px 20px',
                       fontSize: '13px',
                       borderBottom: `1px solid ${theme.border}`,
-                      cursor: reordering ? 'grab' : 'pointer',
+                      cursor: reordering && !isMobile ? 'grab' : reordering ? 'default' : 'pointer',
                       transition: 'background 0.1s',
                       alignItems: 'center',
                       background: isDragTarget ? theme.bg.hover : 'transparent',
@@ -367,9 +404,31 @@ export default function FavoritesPage() {
                       {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
                     {isMobile ? (
-                      <span style={{ textAlign: 'right', color: changeColor, fontSize: '12px', fontWeight: 600 }}>
-                        {sign}{q.changePercent?.toFixed(2)}%
-                      </span>
+                      reordering ? (
+                        <>
+                          <button
+                            disabled={idx === 0}
+                            onClick={(e) => { e.stopPropagation(); idx > 0 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx - 1)) }}
+                            style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === 0 ? 0.3 : 1, justifySelf: 'center' }}
+                          >↑</button>
+                          <button
+                            disabled={idx === group.symbols.length - 1}
+                            onClick={(e) => { e.stopPropagation(); idx < group.symbols.length - 1 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx + 1)) }}
+                            style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === group.symbols.length - 1 ? 0.3 : 1, justifySelf: 'center' }}
+                          >↓</button>
+                        </>
+                      ) : (
+                        <>
+                          <span style={{ textAlign: 'right', color: changeColor, fontSize: '12px', fontWeight: 600 }}>
+                            {sign}{q.changePercent?.toFixed(2)}%
+                          </span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); toggle(sym) }}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
+                            title="즐겨찾기 해제"
+                          >★</button>
+                        </>
+                      )
                     ) : (
                       <>
                         <span style={{ textAlign: 'right', color: changeColor }}>
@@ -402,13 +461,13 @@ export default function FavoritesPage() {
                             </select>
                           )}
                         </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); if (!reordering) toggle(sym) }}
+                          style={{ background: 'none', border: 'none', cursor: reordering ? 'default' : 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
+                          title="즐겨찾기 해제"
+                        >★</button>
                       </>
                     )}
-                    <button
-                      onClick={(e) => { e.stopPropagation(); if (!reordering) toggle(sym) }}
-                      style={{ background: 'none', border: 'none', cursor: reordering ? 'grab' : 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
-                      title="즐겨찾기 해제"
-                    >★</button>
                   </div>
                 )
               })}
