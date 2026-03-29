@@ -12,6 +12,7 @@ src/
 │   ├── user/         # UserInfo
 │   ├── favorites/    # FavoritesPage
 │   ├── help/         # HelpPage
+│   ├── investment/   # InvestmentPage
 │   ├── StockCard.tsx
 │   ├── StockChart.tsx
 │   ├── StockNews.tsx
@@ -28,8 +29,13 @@ src/
 │   └── stock.ts      # StockQuote, ChartPoint, MarketItem 등
 ├── utils/
 │   └── portfolioCalc.ts  # computeHoldings, computeSummary
+├── hooks/
+│   └── useWindowSize.ts  # isMobile 여부 반환
 ├── storage/
-│   └── ...           # localStorage 기반 포트폴리오 저장 어댑터
+│   ├── IPortfolioStorage.ts      # 스토리지 인터페이스
+│   ├── SessionStorageAdapter.ts  # sessionStorage 기반 구현
+│   ├── ApiStorageAdapter.ts      # 서버 API 기반 구현
+│   └── index.ts
 ├── styles/
 │   └── index.css
 └── main.tsx
