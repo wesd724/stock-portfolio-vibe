@@ -93,6 +93,14 @@ export default function FavoritesPage() {
     setEditingGroupId(null)
   }
 
+  // 모든 표 셀 공통: 넘치면 ... 처리, 절대 겹치지 않음
+  const cellStyle: React.CSSProperties = {
+    overflow: 'hidden',
+    textOverflow: 'ellipsis',
+    whiteSpace: 'nowrap',
+    minWidth: 0,
+  }
+
   const btnBase: React.CSSProperties = {
     fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
     border: `1px solid ${theme.border}`, background: 'none',
@@ -188,23 +196,23 @@ export default function FavoritesPage() {
             {editing ? (
               // 편집: ▲▼ | 티커 | 종목명 | 현재가 | 등락률 | 그룹 | ★
               <>
-                <span />
-                <span>티커</span>
-                <span>종목명</span>
-                <span style={{ textAlign: 'right' }}>현재가</span>
-                <span style={{ textAlign: 'right' }}>등락률</span>
-                <span style={{ textAlign: 'center' }}>그룹 이동</span>
-                <span />
+                <span style={cellStyle} />
+                <span style={cellStyle}>티커</span>
+                <span style={cellStyle}>종목명</span>
+                <span style={{ ...cellStyle, textAlign: 'right' }}>현재가</span>
+                <span style={{ ...cellStyle, textAlign: 'right' }}>등락률</span>
+                <span style={{ ...cellStyle, textAlign: 'center' }}>그룹 이동</span>
+                <span style={cellStyle} />
               </>
             ) : (
               // 기본: 티커 | 종목명 | 현재가 | 등락률 | 상태 | ★
               <>
-                <span>티커</span>
-                <span>종목명</span>
-                <span style={{ textAlign: 'right' }}>현재가</span>
-                <span style={{ textAlign: 'right' }}>등락률</span>
-                <span style={{ textAlign: 'center' }}>상태</span>
-                <span />
+                <span style={cellStyle}>티커</span>
+                <span style={cellStyle}>종목명</span>
+                <span style={{ ...cellStyle, textAlign: 'right' }}>현재가</span>
+                <span style={{ ...cellStyle, textAlign: 'right' }}>등락률</span>
+                <span style={{ ...cellStyle, textAlign: 'center' }}>상태</span>
+                <span style={cellStyle} />
               </>
             )}
           </div>
@@ -304,10 +312,10 @@ export default function FavoritesPage() {
                   return (
                     <div key={sym} style={rowStyle}>
                       {editing && arrowCell}
-                      <span style={{ color: theme.text.muted, fontSize: isMobile ? '12px' : '13px' }}>{sym}</span>
-                      <span style={{ color: theme.text.muted }}>로드 실패</span>
-                      <span /><span />
-                      {editing ? groupSelect : <span />}
+                      <span style={{ ...cellStyle, color: theme.text.muted, fontSize: isMobile ? '12px' : '13px' }}>{sym}</span>
+                      <span style={{ ...cellStyle, color: theme.text.muted }}>로드 실패</span>
+                      <span style={cellStyle} /><span style={cellStyle} />
+                      {editing ? groupSelect : <span style={cellStyle} />}
                       {starBtn}
                     </div>
                   )
@@ -326,16 +334,16 @@ export default function FavoritesPage() {
                     onMouseLeave={(e) => { if (!editing) e.currentTarget.style.background = 'transparent' }}
                   >
                     {editing && arrowCell}
-                    <span style={{ fontWeight: 600, color: theme.text.primary, fontSize: isMobile ? '12px' : '13px' }}>{q.symbol}</span>
-                    <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? '11px' : '13px' }}>{q.name}</span>
-                    <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500, fontSize: isMobile ? '12px' : '13px' }}>
+                    <span style={{ ...cellStyle, fontWeight: 600, color: theme.text.primary, fontSize: isMobile ? '12px' : '13px' }}>{q.symbol}</span>
+                    <span style={{ ...cellStyle, color: theme.text.secondary, fontSize: isMobile ? '11px' : '13px' }}>{q.name}</span>
+                    <span style={{ ...cellStyle, textAlign: 'right', color: theme.text.primary, fontWeight: 500, fontSize: isMobile ? '12px' : '13px' }}>
                       {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    <span style={{ textAlign: 'right', color: changeColor, fontSize: isMobile ? '12px' : '13px', fontWeight: 500 }}>
+                    <span style={{ ...cellStyle, textAlign: 'right', color: changeColor, fontSize: isMobile ? '12px' : '13px', fontWeight: 500 }}>
                       {sign}{q.changePercent?.toFixed(2)}%
                     </span>
                     {editing ? groupSelect : (
-                      <span style={{ textAlign: 'center' }}>
+                      <span style={{ ...cellStyle, textAlign: 'center' }}>
                         <span style={{ fontSize: '11px', padding: '2px 5px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>
                           {ms.label}
                         </span>
