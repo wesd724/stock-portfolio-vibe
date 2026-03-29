@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useFavorites } from '../../context/FavoritesContext'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
@@ -9,11 +9,8 @@ import { StockQuote } from '../../types/stock'
 function marketStateLabel(state: string, regularMarketTime?: number | null) {
   const todayStr = new Date().toDateString()
   const lastTradeStr = regularMarketTime != null ? new Date(regularMarketTime).toDateString() : null
-
   if (state === 'CLOSED') {
-    return lastTradeStr === todayStr
-      ? { label: '장마감', color: '#64748b' }
-      : { label: '휴장', color: '#64748b' }
+    return lastTradeStr === todayStr ? { label: '장마감', color: '#64748b' } : { label: '휴장', color: '#64748b' }
   }
   if (state === 'REGULAR' && lastTradeStr != null && lastTradeStr !== todayStr) {
     return { label: '휴장', color: '#64748b' }
@@ -28,13 +25,13 @@ function marketStateLabel(state: string, regularMarketTime?: number | null) {
   return map[state] ?? { label: state, color: '#64748b' }
 }
 
-const GRID_COLS = '80px 1fr 120px 160px 100px 88px 40px'
-const GRID_COLS_REORDER = '24px 80px 1fr 120px 160px 100px 88px 40px'
-const GRID_MIN_WIDTH = '630px'
-// 모바일: 티커 | 종목명 | 현재가 | 등락률 | ★
-const GRID_COLS_MOBILE = '64px 1fr 72px 56px 32px'
-// 모바일 순서변경: 티커 | 종목명 | 현재가 | ↑ | ↓
-const GRID_COLS_MOBILE_REORDER = '64px 1fr 72px 28px 28px'
+// 기본: 티커 | 종목명 | 현재가 | 등락률 | 상태 | ★  (6열)
+const GRID_NORMAL_PC     = '80px 1fr 120px 110px 68px 40px'
+const GRID_NORMAL_MOBILE = '52px 1fr 76px 62px 46px 24px'
+
+// 편집: ▲▼ | 티커 | 종목명 | 현재가 | 등락률 | 그룹 | ★  (7열)
+const GRID_EDIT_PC     = '36px 76px 1fr 120px 110px 90px 40px'
+const GRID_EDIT_MOBILE = '32px 48px 1fr 74px 62px 72px 22px'
 
 function moveItem<T>(arr: T[], from: number, to: number): T[] {
   const result = [...arr]
@@ -57,12 +54,8 @@ export default function FavoritesPage() {
   const [editingName, setEditingName] = useState('')
   const [addingGroup, setAddingGroup] = useState(false)
   const [newGroupName, setNewGroupName] = useState('')
-  const [reordering, setReordering] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [dragOver, setDragOver] = useState<{ groupId: string; index: number } | null>(null)
-  const dragRef = useRef<{ groupId: string; index: number } | null>(null)
-  const [dragGroupOver, setDragGroupOver] = useState<number | null>(null)
-  const dragGroupRef = useRef<number | null>(null)
 
   useEffect(() => {
     if (allSymbols.length === 0) return
@@ -76,9 +69,7 @@ export default function FavoritesPage() {
       )
     ).then((results) => {
       const map: Record<string, StockQuote> = {}
-      results.forEach((entry) => {
-        if (entry) map[entry[0]] = entry[1]
-      })
+      results.forEach((entry) => { if (entry) map[entry[0]] = entry[1] })
       setQuotes(map)
       setLoading(false)
     })
@@ -103,79 +94,85 @@ export default function FavoritesPage() {
   }
 
   const btnBase: React.CSSProperties = {
-    fontSize: '11px',
-    padding: '2px 8px',
-    borderRadius: '4px',
-    border: `1px solid ${theme.border}`,
-    background: 'none',
-    color: theme.text.muted,
-    cursor: 'pointer',
+    fontSize: '11px', padding: '2px 8px', borderRadius: '4px',
+    border: `1px solid ${theme.border}`, background: 'none',
+    color: theme.text.muted, cursor: 'pointer',
   }
+
+  function arrowBtnStyle(disabled: boolean): React.CSSProperties {
+    return {
+      background: theme.bg.input, border: `1px solid ${theme.border}`,
+      color: theme.text.muted, borderRadius: '3px',
+      cursor: disabled ? 'default' : 'pointer',
+      fontSize: '10px', padding: '2px 4px', lineHeight: 1,
+      opacity: disabled ? 0.3 : 1, display: 'block', width: '100%',
+    }
+  }
+
+  function ArrowCell({ onUp, onDown, disableUp, disableDown }: {
+    onUp: () => void; onDown: () => void; disableUp: boolean; disableDown: boolean
+  }) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'stretch', justifyContent: 'center', padding: '0 2px' }}>
+        <button disabled={disableUp} onClick={(e) => { e.stopPropagation(); onUp() }} style={arrowBtnStyle(disableUp)}>▲</button>
+        <button disabled={disableDown} onClick={(e) => { e.stopPropagation(); onDown() }} style={arrowBtnStyle(disableDown)}>▼</button>
+      </div>
+    )
+  }
+
+  const gridCols = editing
+    ? (isMobile ? GRID_EDIT_MOBILE : GRID_EDIT_PC)
+    : (isMobile ? GRID_NORMAL_MOBILE : GRID_NORMAL_PC)
+
+  const padding = isMobile ? '10px 14px' : '14px 20px'
+  const minW = isMobile ? undefined : (editing ? '680px' : '560px')
 
   return (
     <div style={{ background: theme.bg.card, borderRadius: '12px', border: `1px solid ${theme.border}`, overflow: 'hidden' }}>
       {/* 헤더 */}
-      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, display: 'flex', alignItems: 'center', gap: '10px' }}>
+      <div style={{ padding: '16px 20px', borderBottom: `1px solid ${theme.border}`, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
         <span style={{ fontSize: '16px', fontWeight: 600, color: theme.text.primary }}>즐겨찾기</span>
         <span style={{ fontSize: '12px', color: theme.text.muted }}>총 {allSymbols.length}개</span>
         <div style={{ flex: 1 }} />
-        {!reordering && (
-          <button
-            onClick={() => setRefreshKey((k) => k + 1)}
+        {!editing && (
+          <button onClick={() => setRefreshKey((k) => k + 1)}
             style={{ fontSize: '14px', padding: '4px 8px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.muted, cursor: 'pointer' }}
-            title="현재가 새로고침"
-          >↻</button>
+            title="현재가 새로고침">↻</button>
         )}
         <button
-          onClick={() => setReordering((v) => !v)}
+          onClick={() => setEditing((v) => !v)}
           style={{
             fontSize: '12px', padding: '5px 12px', borderRadius: '6px',
-            border: `1px solid ${reordering ? theme.accent : theme.border}`,
-            background: reordering ? theme.accent : 'none',
-            color: reordering ? '#fff' : theme.text.secondary,
-            cursor: 'pointer',
+            border: `1px solid ${editing ? theme.accent : theme.border}`,
+            background: editing ? theme.accent : 'none',
+            color: editing ? '#fff' : theme.text.secondary, cursor: 'pointer',
           }}
-        >{reordering ? '완료' : '순서 변경'}</button>
-        {!reordering && addingGroup ? (
+        >{editing ? '완료' : '편집'}</button>
+        {!editing && (addingGroup ? (
           <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-            <input
-              autoFocus
-              value={newGroupName}
+            <input autoFocus value={newGroupName}
               onChange={(e) => setNewGroupName(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') handleAddGroup()
                 if (e.key === 'Escape') { setAddingGroup(false); setNewGroupName('') }
               }}
               placeholder="그룹 이름"
-              style={{
-                fontSize: '13px', padding: '4px 8px', borderRadius: '6px',
-                border: `1px solid ${theme.border}`, background: theme.bg.input,
-                color: theme.text.primary, width: '120px', outline: 'none',
-              }}
+              style={{ fontSize: '13px', padding: '4px 8px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.primary, width: '120px', outline: 'none' }}
             />
-            <button
-              onClick={handleAddGroup}
-              style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', border: 'none', background: theme.accent, color: '#fff', cursor: 'pointer' }}
-            >추가</button>
-            <button
-              onClick={() => { setAddingGroup(false); setNewGroupName('') }}
-              style={{ ...btnBase, padding: '4px 8px' }}
-            >취소</button>
+            <button onClick={handleAddGroup}
+              style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', border: 'none', background: theme.accent, color: '#fff', cursor: 'pointer' }}>추가</button>
+            <button onClick={() => { setAddingGroup(false); setNewGroupName('') }} style={{ ...btnBase, padding: '4px 8px' }}>취소</button>
           </div>
         ) : (
-          !reordering && (
-            <button
-              onClick={() => setAddingGroup(true)}
-              style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.secondary, cursor: 'pointer' }}
-            >+ 그룹 추가</button>
-          )
-        )}
+          <button onClick={() => setAddingGroup(true)}
+            style={{ fontSize: '12px', padding: '5px 12px', borderRadius: '6px', border: `1px solid ${theme.border}`, background: 'none', color: theme.text.secondary, cursor: 'pointer' }}>
+            + 그룹 추가</button>
+        ))}
       </div>
 
       {allSymbols.length === 0 && !groups.some((g) => g.symbols.length === 0 && groups.length > 1) ? (
         <div style={{ padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>
-          즐겨찾기한 종목이 없습니다.<br />
-          종목 정보 화면의 ☆ 버튼으로 추가하세요.
+          즐겨찾기한 종목이 없습니다.<br />종목 정보 화면의 ☆ 버튼으로 추가하세요.
         </div>
       ) : loading ? (
         <div style={{ padding: '48px', textAlign: 'center', color: theme.text.muted, fontSize: '14px' }}>불러오는 중...</div>
@@ -183,80 +180,67 @@ export default function FavoritesPage() {
         <div style={{ overflowX: 'auto' }}>
           {/* 컬럼 헤더 */}
           <div style={{
-            display: 'grid',
-            gridTemplateColumns: isMobile
-              ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
-              : (reordering ? GRID_COLS_REORDER : GRID_COLS),
-            ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
+            display: 'grid', gridTemplateColumns: gridCols,
+            ...(minW ? { minWidth: minW } : {}),
             padding: isMobile ? '8px 14px' : '8px 20px',
-            fontSize: '11px',
-            color: theme.text.muted,
-            borderBottom: `1px solid ${theme.border}`,
+            fontSize: '11px', color: theme.text.muted, borderBottom: `1px solid ${theme.border}`,
           }}>
-            {!isMobile && reordering && <span />}
-            <span>티커</span>
-            <span>종목명</span>
-            <span style={{ textAlign: 'right' }}>현재가</span>
-            {isMobile ? (
-              reordering ? <><span /><span /></> : <span style={{ textAlign: 'right' }}>등락률</span>
-            ) : (
+            {editing ? (
+              // 편집: ▲▼ | 티커 | 종목명 | 현재가 | 등락률 | 그룹 | ★
               <>
-                <span style={{ textAlign: 'right' }}>본장 등락</span>
-                <span style={{ textAlign: 'center' }}>상태</span>
+                <span />
+                <span>티커</span>
+                <span>종목명</span>
+                <span style={{ textAlign: 'right' }}>현재가</span>
+                <span style={{ textAlign: 'right' }}>등락률</span>
                 <span style={{ textAlign: 'center' }}>그룹 이동</span>
+                <span />
+              </>
+            ) : (
+              // 기본: 티커 | 종목명 | 현재가 | 등락률 | 상태 | ★
+              <>
+                <span>티커</span>
+                <span>종목명</span>
+                <span style={{ textAlign: 'right' }}>현재가</span>
+                <span style={{ textAlign: 'right' }}>등락률</span>
+                <span style={{ textAlign: 'center' }}>상태</span>
+                <span />
               </>
             )}
-            {(!isMobile || !reordering) && <span />}
           </div>
 
           {/* 그룹 섹션 */}
           {groups.map((group, groupIdx) => (
             <div key={group.id}>
               {/* 그룹 헤더 */}
-              <div
-                draggable={reordering}
-                onDragStart={() => { dragGroupRef.current = groupIdx }}
-                onDragOver={(e) => { e.preventDefault(); setDragGroupOver(groupIdx) }}
-                onDragLeave={() => setDragGroupOver(null)}
-                onDrop={() => {
-                  if (dragGroupRef.current === null || dragGroupRef.current === groupIdx) return
-                  const from = dragGroupRef.current
-                  const arr = [...groups]
-                  arr.splice(groupIdx, 0, arr.splice(from, 1)[0])
-                  reorderGroups(arr)
-                  setDragGroupOver(null)
-                }}
-                style={{
-                  ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
-                  padding: '6px 20px',
-                  background: dragGroupOver === groupIdx ? theme.bg.card : theme.bg.hover,
-                  borderBottom: `1px solid ${theme.border}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: reordering && !isMobile ? 'grab' : 'default',
-                }}>
-                {reordering && !isMobile && <span style={{ color: theme.text.muted, fontSize: '14px', userSelect: 'none', flexShrink: 0 }}>≡</span>}
+              <div style={{
+                ...(minW ? { minWidth: minW } : {}),
+                padding: '6px 14px 6px 14px',
+                background: theme.bg.hover, borderBottom: `1px solid ${theme.border}`,
+                display: 'flex', alignItems: 'center', gap: '8px',
+              }}>
+                {editing && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexShrink: 0, width: '28px' }}>
+                    <button disabled={groupIdx === 0}
+                      onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx - 1))}
+                      style={arrowBtnStyle(groupIdx === 0)}>▲</button>
+                    <button disabled={groupIdx === groups.length - 1}
+                      onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx + 1))}
+                      style={arrowBtnStyle(groupIdx === groups.length - 1)}>▼</button>
+                  </div>
+                )}
                 {editingGroupId === group.id ? (
                   <>
-                    <input
-                      autoFocus
-                      value={editingName}
+                    <input autoFocus value={editingName}
                       onChange={(e) => setEditingName(e.target.value)}
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') handleRenameConfirm(group.id)
                         if (e.key === 'Escape') setEditingGroupId(null)
                       }}
-                      style={{
-                        fontSize: '13px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px',
-                        border: `1px solid ${theme.border}`, background: theme.bg.input,
-                        color: theme.text.primary, width: '130px', outline: 'none',
-                      }}
+                      style={{ fontSize: '13px', fontWeight: 600, padding: '2px 6px', borderRadius: '4px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.primary, width: '130px', outline: 'none' }}
                     />
-                    <button
-                      onClick={() => handleRenameConfirm(group.id)}
-                      style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', border: 'none', background: theme.accent, color: '#fff', cursor: 'pointer' }}
-                    >확인</button>
+                    <button onClick={() => handleRenameConfirm(group.id)}
+                      style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '4px', border: 'none', background: theme.accent, color: '#fff', cursor: 'pointer' }}>확인</button>
                     <button onClick={() => setEditingGroupId(null)} style={btnBase}>취소</button>
                   </>
                 ) : (
@@ -264,33 +248,11 @@ export default function FavoritesPage() {
                     <span style={{ fontSize: '13px', fontWeight: 600, color: theme.text.primary }}>{group.name}</span>
                     <span style={{ fontSize: '11px', color: theme.text.muted }}>({group.symbols.length}개)</span>
                     <div style={{ flex: 1 }} />
-                    {(!isMobile || !reordering) && (
-                      <button
-                        onClick={() => { setEditingGroupId(group.id); setEditingName(group.name) }}
-                        style={btnBase}
-                        title="그룹명 변경"
-                      >이름 변경</button>
+                    {editing && (
+                      <button onClick={() => { setEditingGroupId(group.id); setEditingName(group.name) }} style={btnBase}>이름 변경</button>
                     )}
-                    {(!isMobile || !reordering) && groups.length > 1 && (
-                      <button
-                        onClick={() => removeGroup(group.id)}
-                        style={btnBase}
-                        title="그룹 삭제"
-                      >삭제</button>
-                    )}
-                    {isMobile && reordering && (
-                      <>
-                        <button
-                          disabled={groupIdx === 0}
-                          onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx - 1))}
-                          style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: groupIdx === 0 ? 0.3 : 1 }}
-                        >↑</button>
-                        <button
-                          disabled={groupIdx === groups.length - 1}
-                          onClick={() => reorderGroups(moveItem(groups, groupIdx, groupIdx + 1))}
-                          style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: groupIdx === groups.length - 1 ? 0.3 : 1 }}
-                        >↓</button>
-                      </>
+                    {editing && groups.length > 1 && (
+                      <button onClick={() => removeGroup(group.id)} style={btnBase}>삭제</button>
                     )}
                   </>
                 )}
@@ -298,65 +260,58 @@ export default function FavoritesPage() {
 
               {/* 종목 행 */}
               {group.symbols.length === 0 ? (
-                <div style={{
-                  ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
-                  padding: isMobile ? '12px 14px' : '12px 20px',
-                  fontSize: '12px',
-                  color: theme.text.muted,
-                  fontStyle: 'italic',
-                  borderBottom: `1px solid ${theme.border}`,
-                }}>
+                <div style={{ ...(minW ? { minWidth: minW } : {}), padding, fontSize: '12px', color: theme.text.muted, fontStyle: 'italic', borderBottom: `1px solid ${theme.border}` }}>
                   이 그룹에 종목이 없습니다.
                 </div>
               ) : group.symbols.map((sym, idx) => {
                 const q = quotes[sym]
-                const isDragTarget = dragOver?.groupId === group.id && dragOver?.index === idx
+                const isLast = idx === group.symbols.length - 1
 
-                if (!q) return (
-                  <div key={sym}
-                    draggable={reordering}
-                    onDragStart={() => { dragRef.current = { groupId: group.id, index: idx } }}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver({ groupId: group.id, index: idx }) }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={() => {
-                      if (!dragRef.current || dragRef.current.groupId !== group.id) return
-                      const from = dragRef.current.index
-                      if (from === idx) return
-                      const syms = [...group.symbols]
-                      syms.splice(idx, 0, syms.splice(from, 1)[0])
-                      reorderSymbols(group.id, syms)
-                      setDragOver(null)
-                    }}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: isMobile
-                        ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
-                        : (reordering ? GRID_COLS_REORDER : GRID_COLS),
-                      ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
-                      padding: isMobile ? '12px 14px' : '14px 20px',
-                      fontSize: '13px',
-                      color: theme.text.muted,
-                      borderBottom: `1px solid ${theme.border}`,
-                      alignItems: 'center',
-                      background: isDragTarget ? theme.bg.hover : 'transparent',
-                      cursor: reordering && !isMobile ? 'grab' : 'default',
-                    }}>
-                    {!isMobile && reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
-                    <span>{sym}</span>
-                    <span>로드 실패</span>
-                    {isMobile && reordering ? (
-                      <>
-                        <button disabled={idx === 0} onClick={(e) => { e.stopPropagation(); idx > 0 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx - 1)) }} style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === 0 ? 0.3 : 1, justifySelf: 'center' }}>↑</button>
-                        <button disabled={idx === group.symbols.length - 1} onClick={(e) => { e.stopPropagation(); idx < group.symbols.length - 1 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx + 1)) }} style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === group.symbols.length - 1 ? 0.3 : 1, justifySelf: 'center' }}>↓</button>
-                      </>
-                    ) : (
-                      <>
-                        <span /><span />
-                        <button onClick={(e) => { e.stopPropagation(); toggle(sym) }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0 }}>★</button>
-                      </>
-                    )}
-                  </div>
+                const rowStyle: React.CSSProperties = {
+                  display: 'grid', gridTemplateColumns: gridCols,
+                  ...(minW ? { minWidth: minW } : {}),
+                  padding, fontSize: '13px',
+                  borderBottom: `1px solid ${theme.border}`,
+                  alignItems: 'center',
+                  cursor: editing ? 'default' : 'pointer',
+                  transition: 'background 0.1s',
+                }
+
+                const arrowCell = (
+                  <ArrowCell
+                    disableUp={idx === 0} disableDown={isLast}
+                    onUp={() => reorderSymbols(group.id, moveItem(group.symbols, idx, idx - 1))}
+                    onDown={() => reorderSymbols(group.id, moveItem(group.symbols, idx, idx + 1))}
+                  />
                 )
+
+                const groupSelect = groups.length > 1 ? (
+                  <span style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
+                    <select value={group.id} onChange={(e) => moveToGroup(sym, group.id, e.target.value)}
+                      style={{ fontSize: '11px', padding: '2px 4px', borderRadius: '4px', border: `1px solid ${theme.border}`, background: theme.bg.input, color: theme.text.secondary, cursor: 'pointer', width: '100%', maxWidth: '86px' }}>
+                      {groups.map((g) => <option key={g.id} value={g.id}>{g.name}</option>)}
+                    </select>
+                  </span>
+                ) : <span />
+
+                const starBtn = (
+                  <button onClick={(e) => { e.stopPropagation(); toggle(sym) }}
+                    style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
+                    title="즐겨찾기 해제">★</button>
+                )
+
+                if (!q) {
+                  return (
+                    <div key={sym} style={rowStyle}>
+                      {editing && arrowCell}
+                      <span style={{ color: theme.text.muted, fontSize: isMobile ? '12px' : '13px' }}>{sym}</span>
+                      <span style={{ color: theme.text.muted }}>로드 실패</span>
+                      <span /><span />
+                      {editing ? groupSelect : <span />}
+                      {starBtn}
+                    </div>
+                  )
+                }
 
                 const isPositive = q.change >= 0
                 const changeColor = isPositive ? theme.up : theme.down
@@ -364,110 +319,29 @@ export default function FavoritesPage() {
                 const ms = marketStateLabel(q.marketState, q.regularMarketTime)
 
                 return (
-                  <div
-                    key={sym}
-                    draggable={reordering}
-                    onDragStart={() => { dragRef.current = { groupId: group.id, index: idx } }}
-                    onDragOver={(e) => { e.preventDefault(); setDragOver({ groupId: group.id, index: idx }) }}
-                    onDragLeave={() => setDragOver(null)}
-                    onDrop={() => {
-                      if (!dragRef.current || dragRef.current.groupId !== group.id) return
-                      const from = dragRef.current.index
-                      if (from === idx) return
-                      const syms = [...group.symbols]
-                      syms.splice(idx, 0, syms.splice(from, 1)[0])
-                      reorderSymbols(group.id, syms)
-                      setDragOver(null)
-                    }}
-                    onClick={() => { if (!reordering) handleRowClick(q) }}
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: isMobile
-                        ? (reordering ? GRID_COLS_MOBILE_REORDER : GRID_COLS_MOBILE)
-                        : (reordering ? GRID_COLS_REORDER : GRID_COLS),
-                      ...(isMobile ? {} : { minWidth: GRID_MIN_WIDTH }),
-                      padding: isMobile ? '12px 14px' : '14px 20px',
-                      fontSize: '13px',
-                      borderBottom: `1px solid ${theme.border}`,
-                      cursor: reordering && !isMobile ? 'grab' : reordering ? 'default' : 'pointer',
-                      transition: 'background 0.1s',
-                      alignItems: 'center',
-                      background: isDragTarget ? theme.bg.hover : 'transparent',
-                    }}
-                    onMouseEnter={(e) => { if (!reordering) e.currentTarget.style.background = theme.bg.hover }}
-                    onMouseLeave={(e) => { if (!reordering) e.currentTarget.style.background = 'transparent' }}
+                  <div key={sym}
+                    onClick={() => { if (!editing) handleRowClick(q) }}
+                    style={rowStyle}
+                    onMouseEnter={(e) => { if (!editing) e.currentTarget.style.background = theme.bg.hover }}
+                    onMouseLeave={(e) => { if (!editing) e.currentTarget.style.background = 'transparent' }}
                   >
-                    {!isMobile && reordering && <span style={{ color: theme.text.muted, fontSize: '14px', justifySelf: 'center', userSelect: 'none' }}>≡</span>}
+                    {editing && arrowCell}
                     <span style={{ fontWeight: 600, color: theme.text.primary, fontSize: isMobile ? '12px' : '13px' }}>{q.symbol}</span>
                     <span style={{ color: theme.text.secondary, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: isMobile ? '11px' : '13px' }}>{q.name}</span>
                     <span style={{ textAlign: 'right', color: theme.text.primary, fontWeight: 500, fontSize: isMobile ? '12px' : '13px' }}>
                       {q.price?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </span>
-                    {isMobile ? (
-                      reordering ? (
-                        <>
-                          <button
-                            disabled={idx === 0}
-                            onClick={(e) => { e.stopPropagation(); idx > 0 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx - 1)) }}
-                            style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === 0 ? 0.3 : 1, justifySelf: 'center' }}
-                          >↑</button>
-                          <button
-                            disabled={idx === group.symbols.length - 1}
-                            onClick={(e) => { e.stopPropagation(); idx < group.symbols.length - 1 && reorderSymbols(group.id, moveItem(group.symbols, idx, idx + 1)) }}
-                            style={{ background: theme.bg.input, border: `1px solid ${theme.border}`, color: theme.text.muted, borderRadius: '4px', cursor: 'pointer', fontSize: '14px', padding: '2px 6px', lineHeight: 1, opacity: idx === group.symbols.length - 1 ? 0.3 : 1, justifySelf: 'center' }}
-                          >↓</button>
-                        </>
-                      ) : (
-                        <>
-                          <span style={{ textAlign: 'right', color: changeColor, fontSize: '12px', fontWeight: 600 }}>
-                            {sign}{q.changePercent?.toFixed(2)}%
-                          </span>
-                          <button
-                            onClick={(e) => { e.stopPropagation(); toggle(sym) }}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
-                            title="즐겨찾기 해제"
-                          >★</button>
-                        </>
-                      )
-                    ) : (
-                      <>
-                        <span style={{ textAlign: 'right', color: changeColor }}>
-                          {sign}{q.change?.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({sign}{q.changePercent?.toFixed(2)}%)
+                    <span style={{ textAlign: 'right', color: changeColor, fontSize: isMobile ? '12px' : '13px', fontWeight: 500 }}>
+                      {sign}{q.changePercent?.toFixed(2)}%
+                    </span>
+                    {editing ? groupSelect : (
+                      <span style={{ textAlign: 'center' }}>
+                        <span style={{ fontSize: '11px', padding: '2px 5px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>
+                          {ms.label}
                         </span>
-                        <span style={{ textAlign: 'center' }}>
-                          <span style={{ fontSize: '11px', padding: '2px 6px', borderRadius: '4px', background: theme.bg.input, color: ms.color }}>
-                            {ms.label}
-                          </span>
-                        </span>
-                        <span style={{ textAlign: 'center' }} onClick={(e) => e.stopPropagation()}>
-                          {!reordering && groups.length > 1 && (
-                            <select
-                              value={group.id}
-                              onChange={(e) => moveToGroup(sym, group.id, e.target.value)}
-                              style={{
-                                fontSize: '11px',
-                                padding: '2px 4px',
-                                borderRadius: '4px',
-                                border: `1px solid ${theme.border}`,
-                                background: theme.bg.input,
-                                color: theme.text.secondary,
-                                cursor: 'pointer',
-                                maxWidth: '84px',
-                              }}
-                            >
-                              {groups.map((g) => (
-                                <option key={g.id} value={g.id}>{g.name}</option>
-                              ))}
-                            </select>
-                          )}
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); if (!reordering) toggle(sym) }}
-                          style={{ background: 'none', border: 'none', cursor: reordering ? 'default' : 'pointer', fontSize: '16px', color: '#f59e0b', padding: 0, justifySelf: 'center' }}
-                          title="즐겨찾기 해제"
-                        >★</button>
-                      </>
+                      </span>
                     )}
+                    {starBtn}
                   </div>
                 )
               })}
