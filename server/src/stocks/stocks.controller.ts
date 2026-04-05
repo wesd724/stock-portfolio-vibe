@@ -50,6 +50,11 @@ export class StocksController {
     return this.stocksService.getScreener(type, sort, order);
   }
 
+  @Get('profile/:symbol')
+  getProfile(@Param('symbol') symbol: string) {
+    return this.stocksService.getProfile(symbol.toUpperCase());
+  }
+
   @Get('forex/rate')
   getForexRate(@Query('date') date: string) {
     return this.stocksService.getForexRate(date);

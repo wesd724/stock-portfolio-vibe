@@ -266,6 +266,41 @@ export class StocksService {
       }));
   }
 
+  async getProfile(symbol: string) {
+    const [quoteResult, summaryResult] = await Promise.allSettled([
+      yf.quote(symbol),
+      (yf as any).quoteSummary(symbol, {
+        modules: ['fundProfile', 'defaultKeyStatistics', 'summaryDetail', 'assetProfile'],
+      }),
+    ]);
+
+    const q = quoteResult.status === 'fulfilled' ? quoteResult.value : null;
+    const s = summaryResult.status === 'fulfilled' ? (summaryResult.value as any) : null;
+
+    const inceptionRaw = s?.fundProfile?.fundInceptionDate;
+    const fundInceptionDate = inceptionRaw instanceof Date
+      ? inceptionRaw.toISOString().split('T')[0]
+      : (inceptionRaw ?? null);
+
+    return {
+      symbol,
+      name: q?.longName ?? q?.shortName ?? symbol,
+      quoteType: q?.quoteType ?? null,
+      fundFamily: s?.fundProfile?.fundFamily ?? null,
+      legalType: s?.fundProfile?.legalType ?? null,
+      categoryName: s?.fundProfile?.categoryName ?? null,
+      fundInceptionDate,
+      expenseRatio: s?.defaultKeyStatistics?.annualReportExpenseRatio ?? null,
+      totalAssets: s?.summaryDetail?.totalAssets ?? null,
+      sharesOutstanding: s?.defaultKeyStatistics?.sharesOutstanding ?? null,
+      averageVolume: s?.summaryDetail?.averageVolume ?? null,
+      averageVolume10Day: s?.summaryDetail?.averageVolume10days ?? null,
+      sector: s?.assetProfile?.sector ?? null,
+      industry: s?.assetProfile?.industry ?? null,
+      website: s?.assetProfile?.website ?? null,
+    };
+  }
+
   async getForexRate(date: string): Promise<{ rate: number; date: string }> {
     const period1 = new Date(date);
     const period2 = new Date(date);

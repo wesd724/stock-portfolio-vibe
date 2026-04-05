@@ -41,15 +41,22 @@ function getNextInvestDate(current: Date, freq: Frequency): Date {
   return d
 }
 
-function countInvestDates(startDate: string, endDate: string, freq: Frequency): number {
-  const endMs = new Date(endDate).getTime()
-  let count = 0
-  let cur = new Date(startDate)
-  while (cur.getTime() <= endMs) {
-    count++
-    cur = getNextInvestDate(cur, freq)
+function calcPeriod(startDate: string, endDate: string): string {
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  let years = end.getFullYear() - start.getFullYear()
+  let months = end.getMonth() - start.getMonth()
+  let days = end.getDate() - start.getDate()
+  if (days < 0) {
+    months--
+    days += new Date(end.getFullYear(), end.getMonth(), 0).getDate()
   }
-  return count
+  if (months < 0) { years--; months += 12 }
+  const parts: string[] = []
+  if (years > 0) parts.push(`${years}년`)
+  if (months > 0) parts.push(`${months}개월`)
+  if (days > 0) parts.push(`${days}일`)
+  return parts.length > 0 ? parts.join(' ') : '0일'
 }
 
 function findNearestPrice(points: RawPoint[], targetMs: number): number | null {
@@ -70,8 +77,8 @@ function computeDCA(
   endDate: string,
   freq: Frequency,
   amountUSD: number,
-): ChartPoint[] {
-  if (points.length === 0) return []
+): { data: ChartPoint[]; investCount: number } {
+  if (points.length === 0) return { data: [], investCount: 0 }
 
   const startMs = new Date(startDate).getTime()
   const endMs = new Date(endDate).getTime()
@@ -87,7 +94,8 @@ function computeDCA(
   let totalShares = 0
   let totalInvested = 0
   let investIdx = 0
-  const result: ChartPoint[] = []
+  let investCount = 0
+  const data: ChartPoint[] = []
 
   for (const p of sorted) {
     if (p.time < startMs || p.time > endMs) continue
@@ -95,17 +103,18 @@ function computeDCA(
       if (p.close > 0) {
         totalShares += amountUSD / p.close
         totalInvested += amountUSD
+        investCount++
       }
       investIdx++
     }
-    result.push({
+    data.push({
       date: toDateStr(new Date(p.time)),
       portfolioValue: parseFloat((totalShares * p.close).toFixed(2)),
       totalInvested: parseFloat(totalInvested.toFixed(2)),
     })
   }
 
-  return result
+  return { data, investCount }
 }
 
 function computeBuyHold(
@@ -248,8 +257,9 @@ export default function InvestmentPage() {
       if (mode === 'dca') {
         const amountUSD = toUSD(dcaAmount)
         if (amountUSD <= 0) { setError('투자 금액을 입력해주세요.'); return }
-        setChartData(computeDCA(raw, from, to, dcaFreq, amountUSD))
-        setDcaInvestCount(countInvestDates(from, to, dcaFreq))
+        const { data, investCount } = computeDCA(raw, from, to, dcaFreq, amountUSD)
+        setChartData(data)
+        setDcaInvestCount(investCount)
       } else {
         const amountUSD = toUSD(bhAmount)
         if (amountUSD <= 0) { setError('투자 금액을 입력해주세요.'); return }
@@ -551,6 +561,7 @@ export default function InvestmentPage() {
                   <div>투자 주기: <strong style={{ color: theme.text.primary }}>{FREQ_LABELS.find(f => f.value === dcaFreq)?.label}</strong></div>
                   <div>1회 투자금액: <strong style={{ color: theme.text.primary }}>{fmt(toUSD(dcaAmount))}</strong></div>
                   <div>총 투자 횟수: <strong style={{ color: theme.text.primary }}>{dcaInvestCount}회</strong></div>
+                  <div>총 투자 기간: <strong style={{ color: theme.text.primary }}>{calcPeriod(dcaStart, dcaEnd)}</strong></div>
                 </>
               )}
               <div>총 투자 원금: <strong style={{ color: theme.text.primary }}>{fmt(totalInvested)}</strong></div>

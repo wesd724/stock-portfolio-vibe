@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import { useStock } from '../../context/StockContext'
 import { useNavigation } from '../../context/NavigationContext'
 import { useTheme } from '../../context/ThemeContext'
@@ -148,6 +148,7 @@ export default function ComparisonPage() {
   const { theme } = useTheme()
   const { isMobile } = useWindowSize()
   const [symbols, setSymbols] = useState<SymbolEntry[]>([])
+  const [profileMap, setProfileMap] = useState<Record<string, any>>({})
   const [interval, setIntervalVal] = useState<CompareInterval>('1d')
   const [dateRange, setDateRange] = useState(getDefaultRange('1d'))
   const [pendingRange, setPendingRange] = useState(getDefaultRange('1d'))
@@ -177,13 +178,20 @@ export default function ComparisonPage() {
     return () => clearTimeout(timer)
   }, [query])
 
-  // 종목 추가 시 quote 조회
+  // 종목 추가 시 quote + profile 조회
   useEffect(() => {
-    const missing = symbols.filter((s) => !quotesMap[s.symbol])
-    missing.forEach(({ symbol }) => {
+    const missingQuotes = symbols.filter((s) => !quotesMap[s.symbol])
+    missingQuotes.forEach(({ symbol }) => {
       fetch(`/api/stocks/quote/${symbol}`)
         .then((r) => r.json())
         .then((q: StockQuote) => setQuotesMap((prev) => ({ ...prev, [symbol]: q })))
+        .catch(() => {})
+    })
+    const missingProfiles = symbols.filter((s) => !profileMap[s.symbol])
+    missingProfiles.forEach(({ symbol }) => {
+      fetch(`/api/stocks/profile/${symbol}`)
+        .then((r) => r.json())
+        .then((p) => setProfileMap((prev) => ({ ...prev, [symbol]: p })))
         .catch(() => {})
     })
   }, [symbols.map((s) => s.symbol).join(',')])
@@ -233,6 +241,7 @@ export default function ComparisonPage() {
     setSymbols((prev) => prev.filter((s) => s.symbol !== symbol))
     setDataMap((prev) => { const d = { ...prev }; delete d[symbol]; return d })
     setQuotesMap((prev) => { const d = { ...prev }; delete d[symbol]; return d })
+    setProfileMap((prev) => { const d = { ...prev }; delete d[symbol]; return d })
   }
 
   const mergedData = buildMergedData(symbols.map((s) => s.symbol), dataMap)
@@ -360,6 +369,92 @@ export default function ComparisonPage() {
           </ResponsiveContainer>
         )}
       </div>
+
+      {/* ── 기본 정보 섹션 ── */}
+      {symbols.length > 0 && symbols.some((s) => profileMap[s.symbol]) && (() => {
+        const fmt = (n: number) => '$' + formatNumber(n)
+        const profileRows: { label: string; fn: (p: any) => React.ReactNode }[] = [
+          { label: '유형', fn: (p) => p.quoteType ?? '-' },
+          { label: '카테고리 / 섹터', fn: (p) => p.categoryName ?? p.sector ?? '-' },
+          { label: '업종', fn: (p) => p.industry ?? '-' },
+          { label: '운용사 / 발행사', fn: (p) => p.fundFamily ?? '-' },
+          { label: '구조', fn: (p) => p.legalType ?? '-' },
+          { label: '설정일', fn: (p) => p.fundInceptionDate ?? '-' },
+          { label: '순자산(AUM)', fn: (p) => p.totalAssets != null ? fmt(p.totalAssets) : '-' },
+          { label: '총보수(Expense Ratio)', fn: (p) => p.expenseRatio != null ? `${(p.expenseRatio * 100).toFixed(2)}%` : '-' },
+          { label: '발행주식수', fn: (p) => p.sharesOutstanding != null ? formatNumber(p.sharesOutstanding) : '-' },
+          { label: '평균거래량(3개월)', fn: (p) => p.averageVolume != null ? formatNumber(p.averageVolume) : '-' },
+          { label: '평균거래량(10일)', fn: (p) => p.averageVolume10Day != null ? formatNumber(p.averageVolume10Day) : '-' },
+          {
+            label: '웹사이트', fn: (p) => p.website
+              ? <a href={p.website} target="_blank" rel="noopener noreferrer" style={{ color: theme.accent, textDecoration: 'none' }}>{p.website.replace(/^https?:\/\//, '')}</a>
+              : '-'
+          },
+        ]
+        // 모든 종목이 '-'인 행은 숨김
+        const visibleRows = profileRows.filter((row) =>
+          symbols.some((s) => {
+            const p = profileMap[s.symbol]
+            if (!p) return false
+            const val = row.fn(p)
+            return val !== '-' && val != null
+          })
+        )
+        return (
+          <div style={sectionCard}>
+            <div style={sectionTitle}>종목 기본 정보</div>
+            {isMobile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {symbols.map((s, i) => {
+                  const p = profileMap[s.symbol]
+                  if (!p) return null
+                  return (
+                    <div key={s.symbol} style={{ border: `1px solid ${theme.border}`, borderRadius: '8px', overflow: 'hidden' }}>
+                      <div style={{ padding: '8px 12px', background: theme.bg.input, fontWeight: 700, color: COLORS[i % COLORS.length], fontSize: '13px' }}>{s.symbol}</div>
+                      <div style={{ fontSize: '12px' }}>
+                        {visibleRows.map(({ label, fn }) => (
+                          <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 12px', borderBottom: `1px solid ${theme.border}` }}>
+                            <span style={{ color: theme.text.muted }}>{label}</span>
+                            <span style={{ color: theme.text.primary, fontWeight: 500, textAlign: 'right', maxWidth: '55%', wordBreak: 'break-all' }}>{fn(p)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            ) : (
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+                  <thead>
+                    <tr>
+                      <td style={{ padding: '6px 12px', color: theme.text.muted, fontWeight: 600, borderBottom: `1px solid ${theme.border}`, minWidth: '160px' }}>항목</td>
+                      {symbols.map((s, i) => (
+                        <td key={s.symbol} style={{ padding: '6px 12px', textAlign: 'right', borderBottom: `1px solid ${theme.border}`, fontWeight: 700, color: COLORS[i % COLORS.length] }}>{s.symbol}</td>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {visibleRows.map(({ label, fn }) => (
+                      <tr key={label} style={{ borderBottom: `1px solid ${theme.border}` }}
+                        onMouseEnter={(e) => (e.currentTarget.style.background = theme.bg.hover)}
+                        onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                      >
+                        <td style={{ padding: '8px 12px', color: theme.text.muted }}>{label}</td>
+                        {symbols.map((s) => (
+                          <td key={s.symbol} style={{ padding: '8px 12px', textAlign: 'right', color: theme.text.primary, fontWeight: 500 }}>
+                            {profileMap[s.symbol] ? fn(profileMap[s.symbol]) : '-'}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )
+      })()}
 
       {/* ── 하단 분석 섹션 ── */}
       {hasData && (
