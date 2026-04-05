@@ -409,7 +409,7 @@ export default function InvestmentPage() {
             </div>
             <div>
               <label style={labelStyle}>종료일</label>
-              <input type="date" value={dcaEnd} onChange={(e) => setDcaEnd(e.target.value)} style={inputStyle} />
+              <input type="date" value={dcaEnd} max={toDateStr(new Date())} onChange={(e) => setDcaEnd(e.target.value)} style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>투자 주기</label>
@@ -441,7 +441,7 @@ export default function InvestmentPage() {
             </div>
             <div>
               <label style={labelStyle}>종료일</label>
-              <input type="date" value={bhEndDate} onChange={(e) => setBhEndDate(e.target.value)} style={inputStyle} />
+              <input type="date" value={bhEndDate} max={toDateStr(new Date())} onChange={(e) => setBhEndDate(e.target.value)} style={inputStyle} />
             </div>
             <div>
               <label style={labelStyle}>투자금액 {amountLabel}</label>
