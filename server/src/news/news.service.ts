@@ -16,6 +16,8 @@ const FEEDS = [
 ];
 
 const ITEMS_PER_FEED = 20;
+const FETCH_TIMEOUT_MS = 5_000;
+const CACHE_TTL_MS = 5 * 60 * 1000;
 
 export interface GlobalNewsItem {
   title: string;
@@ -27,6 +29,8 @@ export interface GlobalNewsItem {
 
 @Injectable()
 export class NewsService {
+  private rawCache: { items: GlobalNewsItem[]; at: number } | null = null;
+
   private async translateText(text: string): Promise<string> {
     try {
       const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
@@ -38,9 +42,20 @@ export class NewsService {
     }
   }
 
-  async getGlobalNews(translate: boolean): Promise<GlobalNewsItem[]> {
+  private withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+    return Promise.race([
+      promise,
+      new Promise<T>((_, reject) =>
+        setTimeout(() => reject(new Error('timeout')), ms),
+      ),
+    ]);
+  }
+
+  private async fetchRaw(): Promise<GlobalNewsItem[]> {
     const results = await Promise.allSettled(
-      FEEDS.map((feed) => rssParser.parseURL(feed.url)),
+      FEEDS.map((feed) =>
+        this.withTimeout(rssParser.parseURL(feed.url), FETCH_TIMEOUT_MS),
+      ),
     );
 
     const items: GlobalNewsItem[] = [];
@@ -63,6 +78,25 @@ export class NewsService {
       const db = b.publishedAt ? new Date(b.publishedAt).getTime() : 0;
       return db - da;
     });
+
+    return items;
+  }
+
+  async getGlobalNews(translate: boolean): Promise<GlobalNewsItem[]> {
+    const now = Date.now();
+    let items: GlobalNewsItem[];
+
+    if (this.rawCache && now - this.rawCache.at < CACHE_TTL_MS) {
+      items = this.rawCache.items;
+    } else {
+      items = await this.fetchRaw();
+      if (items.length > 0) {
+        this.rawCache = { items, at: now };
+      } else if (this.rawCache) {
+        // 전부 실패 시 만료된 캐시라도 반환
+        items = this.rawCache.items;
+      }
+    }
 
     if (!translate) return items;
 
