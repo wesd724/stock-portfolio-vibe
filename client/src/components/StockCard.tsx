@@ -15,6 +15,13 @@ const MARKET_OVERVIEW_SYMBOLS = new Set([
   'BTC-USD', 'ETH-USD',
 ])
 
+// 지수/환율/채권 등 — 통화 표시 불필요 (단위가 "포인트", "%" 등)
+const INDEX_SYMBOLS = new Set([
+  'NQ=F', 'ES=F', 'YM=F', 'RTY=F',
+  'KRW=X', 'DX=F', '2YY=F', '^TNX', '^VIX',
+  '^KS11', '^KQ11',
+])
+
 interface Props {
   quote: StockQuote
 }
@@ -82,6 +89,7 @@ export default function StockCard({ quote }: Props) {
   const { isMobile } = useWindowSize()
   const marketState = marketStateLabel(quote.marketState, quote.regularMarketTime)
   const isMarketOverviewSymbol = MARKET_OVERVIEW_SYMBOLS.has(quote.symbol)
+  const isIndexSymbol = INDEX_SYMBOLS.has(quote.symbol)
   const favorited = isFavorite(quote.symbol)
   const isKRW = viewCurrency === 'KRW'
   const isNativeKRW = quote.currency === 'KRW'
@@ -94,6 +102,9 @@ export default function StockCard({ quote }: Props) {
 
   function px(value: number | undefined) {
     if (value == null) return '-'
+    if (isIndexSymbol) {
+      return value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    }
     if (isNativeKRW) {
       // value가 이미 KRW
       return isKRW
@@ -109,6 +120,9 @@ export default function StockCard({ quote }: Props) {
   function formatChangePx(change: number | undefined, pct: number | undefined) {
     if (change == null || pct == null) return '-'
     const sign = change >= 0 ? '+' : ''
+    if (isIndexSymbol) {
+      return `${sign}${change.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} (${sign}${pct.toFixed(2)}%)`
+    }
     if (isNativeKRW) {
       // change가 이미 KRW
       return isKRW
@@ -176,21 +190,23 @@ export default function StockCard({ quote }: Props) {
             justifyContent: isMobile ? 'flex-start' : 'flex-end',
             flexWrap: 'wrap',
           }}>
-            {/* USD/KRW 토글 */}
-            <div style={{ display: 'flex', gap: '3px' }}>
-              {(['USD', 'KRW'] as const).map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setViewCurrency(c)}
-                  style={{
-                    padding: '3px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
-                    border: `1px solid ${viewCurrency === c ? theme.accent : theme.border}`,
-                    background: viewCurrency === c ? theme.accent + '33' : 'transparent',
-                    color: viewCurrency === c ? theme.accent : theme.text.muted,
-                  }}
-                >{c}</button>
-              ))}
-            </div>
+            {/* USD/KRW 토글 — 지수/환율/채권은 통화 개념 없으므로 숨김 */}
+            {!isIndexSymbol && (
+              <div style={{ display: 'flex', gap: '3px' }}>
+                {(['USD', 'KRW'] as const).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setViewCurrency(c)}
+                    style={{
+                      padding: '3px 8px', borderRadius: '5px', fontSize: '11px', fontWeight: 600, cursor: 'pointer',
+                      border: `1px solid ${viewCurrency === c ? theme.accent : theme.border}`,
+                      background: viewCurrency === c ? theme.accent + '33' : 'transparent',
+                      color: viewCurrency === c ? theme.accent : theme.text.muted,
+                    }}
+                  >{c}</button>
+                ))}
+              </div>
+            )}
             {/* 현재 장 기준 가격 */}
             <div style={{ fontSize: isMobile ? '22px' : '28px', fontWeight: 700, color: theme.text.primary }}>
               {(() => {
@@ -233,7 +249,7 @@ export default function StockCard({ quote }: Props) {
               본장 종가 {px(quote.price)}
             </div>
           )}
-          {(isNativeKRW !== isKRW) && (
+          {!isIndexSymbol && (isNativeKRW !== isKRW) && (
             <div style={{ fontSize: '11px', color: theme.text.muted, marginTop: '2px', textAlign: isMobile ? 'left' : 'right' }}>
               적용 환율 {rate.toLocaleString('ko-KR', { maximumFractionDigits: 1 })}원/달러
             </div>
@@ -266,9 +282,11 @@ export default function StockCard({ quote }: Props) {
         marginTop: '8px', padding: '12px', background: theme.bg.input, borderRadius: '8px', fontSize: '13px',
       }}>
         {[
-          { label: '시가총액', value: isKRW
-            ? `₩${formatNumberKRW(isNativeKRW ? quote.marketCap : quote.marketCap * rate)}`
-            : (isNativeKRW ? `$ ${formatNumber(Math.round(quote.marketCap / rate))}` : formatNumber(quote.marketCap)) },
+          { label: '시가총액', value: isIndexSymbol
+            ? formatNumber(quote.marketCap)
+            : isKRW
+              ? `₩${formatNumberKRW(isNativeKRW ? quote.marketCap : quote.marketCap * rate)}`
+              : (isNativeKRW ? `$ ${formatNumber(Math.round(quote.marketCap / rate))}` : formatNumber(quote.marketCap)) },
           { label: 'P/E', value: quote.trailingPE?.toFixed(2) ?? '-' },
           { label: '배당수익률', value: quote.dividendYield != null ? `${(quote.dividendYield * 100).toFixed(2)}%` : '-' },
           { label: '52주 범위', value: isKRW
